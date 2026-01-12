@@ -18,9 +18,9 @@
         @keyframes pulse-green { 0% { transform: scale(1); color: #1f2937; } 50% { transform: scale(1.1); color: #16a34a; } 100% { transform: scale(1); color: #1f2937; } }
         .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
         
-        /* LOGIN STYLE */
+        /* ESTILOS DE LOGIN */
         #view-login {
-            background-color: #1e3a8a; /* Fallback color */
+            background-color: #1e3a8a;
             background-size: cover;
             background-position: center;
         }
@@ -28,11 +28,22 @@
             background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.2) 100%);
         }
 
+        /* LOGO REDONDA COM BORDA */
+        #login-logo {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            display: none; /* Controlado via JS */
+        }
+
         #loading-overlay { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px); }
         .loader-spinner { border: 4px solid #e5e7eb; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* PRINT STYLES */
+        /* ESTILOS DE IMPRESSÃO (PDF) */
         @media print {
             @page { size: landscape; margin: 10mm; }
             body { background-color: white; font-family: serif; }
@@ -66,17 +77,20 @@
         </div>
     </div>
 
-    <!-- TELA DE LOGIN (NOVA) -->
+    <!-- TELA DE LOGIN -->
     <div id="view-login" class="fixed inset-0 z-50 flex flex-col justify-end hidden">
         <div class="login-overlay absolute inset-0"></div>
         <div class="relative z-10 p-8 pb-12 w-full max-w-md mx-auto">
-            <div class="mb-8 text-center">
-                <!-- Logo Dinâmica -->
-                <img id="login-logo" src="" class="h-24 w-auto mx-auto mb-4 hidden object-contain filter drop-shadow-lg" alt="Logo">
-                <!-- Placeholder caso não tenha logo -->
-                <div id="login-logo-placeholder" class="h-20 w-20 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg shadow-blue-900/50">
-                    <i data-lucide="droplet" class="w-10 h-10 text-white"></i>
+            <div class="mb-8 text-center flex flex-col items-center">
+                
+                <!-- Logo Redonda com Borda -->
+                <img id="login-logo" src="" alt="Logo" class="mb-6 mx-auto">
+                
+                <!-- Placeholder (Bolinha com ícone) caso não tenha logo -->
+                <div id="login-logo-placeholder" class="h-28 w-28 bg-blue-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg border-4 border-white/30">
+                    <i data-lucide="droplet" class="w-12 h-12 text-white"></i>
                 </div>
+
                 <h1 class="text-3xl font-bold text-white mb-1" id="app-name-display">Gestão de Água</h1>
                 <p class="text-blue-200" id="greeting-display">Bem-vindo ao sistema</p>
             </div>
@@ -246,14 +260,13 @@
     </nav>
 
     <script>
-        // *** ATUALIZE AQUI O LINK DA SUA API ***
+        // *** SEU LINK ATUALIZADO ***
         const API_URL = "https://script.google.com/macros/s/AKfycbzehxgBi_WiXXb5rRf-H8qfgh0vRl640-2BeTbzO5BWLoV4flMnEIqbOUHxQpVdTM3JRQ/exec";
         const MOCK_MODE = false;
 
         const utils = {
             formatDateBR: d => d ? d.split('-').reverse().join('/') : '',
             getToday: () => new Date().toISOString().split('T')[0],
-            // Formatador de data personalizado para o dashboard
             getCurrentMonthLabel: () => {
                 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
                 const now = new Date();
@@ -276,15 +289,10 @@
                 const loginEl = document.getElementById('view-login');
                 const navEl = document.getElementById('main-nav');
                 const headerEl = document.getElementById('app-header');
-                
                 if(show) {
-                    loginEl.classList.remove('hidden');
-                    navEl.classList.add('hidden');
-                    headerEl.classList.add('hidden');
+                    loginEl.classList.remove('hidden'); navEl.classList.add('hidden'); headerEl.classList.add('hidden');
                 } else {
-                    loginEl.classList.add('hidden');
-                    navEl.classList.remove('hidden');
-                    headerEl.classList.remove('hidden');
+                    loginEl.classList.add('hidden'); navEl.classList.remove('hidden'); headerEl.classList.remove('hidden');
                 }
             },
             updateDashboardLabels: () => {
@@ -317,7 +325,11 @@
         const api = {
             req: async (body) => {
                 if(MOCK_MODE) return {success:true, dashboard:{mes:1,ano:1}, data:[], totalPages:1};
-                const res = await fetch(API_URL, {method:'POST', body: JSON.stringify(body)});
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(body)
+                });
                 return await res.json();
             },
             get: async (params) => {
@@ -334,13 +346,12 @@
             init: async () => {
                 ui.loading(true, "Iniciando...");
                 lucide.createIcons();
-                ui.updateDashboardLabels(); // Aplica a formatação de data
+                ui.updateDashboardLabels();
                 
                 const today = utils.getToday();
                 ['input-date','rel-inicio','rel-fim','filter-date'].forEach(id => document.getElementById(id).value = today);
                 document.getElementById('input-whatsapp').addEventListener('input', e => e.target.value = utils.maskPhone(e.target.value));
 
-                // 1. Verifica Sessão
                 const savedUser = localStorage.getItem('app_user');
                 if(savedUser) {
                     app.state.user = JSON.parse(savedUser);
@@ -353,7 +364,6 @@
             loadLoginScreen: async () => {
                 ui.toggleLogin(true);
                 ui.loading(false);
-                // Carrega config (Logo, Capa)
                 try {
                     const config = await api.get({op:'config'});
                     if(config) {
@@ -362,11 +372,12 @@
                         if(config.cover_url) document.getElementById('view-login').style.backgroundImage = `url('${config.cover_url}')`;
                         if(config.logo_url) {
                             const logo = document.getElementById('login-logo');
-                            logo.src = config.logo_url; logo.classList.remove('hidden');
+                            logo.src = config.logo_url; 
+                            logo.style.display = 'block';
                             document.getElementById('login-logo-placeholder').classList.add('hidden');
                         }
                     }
-                } catch(e) { console.log("Config load error", e); }
+                } catch(e) { console.log("Config error", e); }
             },
 
             login: async (e) => {
@@ -428,7 +439,6 @@
                 fill('.select-locais-dinamico', app.data.locais);
                 fill('.select-tipos-dinamico', app.data.tipos);
                 
-                // Config Lists
                 const render = (id, list, type) => {
                     const el = document.getElementById(id); el.innerHTML = '';
                     list.forEach(i => el.innerHTML += `<div class="flex justify-between p-2 bg-gray-50 rounded text-sm"><span>${i}</span><button onclick="app.reqSettings('del','${type}','${i}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`);
