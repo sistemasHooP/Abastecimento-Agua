@@ -33,30 +33,71 @@
             50% { color: #16a34a; transform: scale(1.2); }
             100% { color: #1f2937; transform: scale(1); }
         }
-        .loader {
-            border: 3px solid #f3f3f3;
+        .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+
+        /* LOADING OVERLAY */
+        #loading-overlay {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(2px);
+        }
+        .loader-spinner {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #2563eb;
             border-radius: 50%;
-            border-top: 3px solid #3b82f6;
-            width: 24px; height: 24px;
+            width: 40px; height: 40px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
 
         /* ESTILOS DE IMPRESSÃO (PDF) */
         @media print {
-            body { background-color: white; }
-            .no-print, .bottom-nav, header, form, .screen:not(#view-reports), .footer-credit { display: none !important; }
-            #view-reports, #report-results, #report-results table { display: block !important; width: 100% !important; }
+            @page { size: landscape; margin: 10mm; } /* FORÇA HORIZONTAL */
+            body { background-color: white; font-family: serif; }
+            .no-print, .bottom-nav, header, form, .screen:not(#view-reports), .footer-credit, #loading-overlay, #custom-alert { display: none !important; }
+            
+            #view-reports { display: block !important; width: 100% !important; padding: 0 !important; }
             #report-results { box-shadow: none; border: none; }
-            #print-header { display: block !important; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            table { font-size: 12px; width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-            th { background-color: #eee !important; -webkit-print-color-adjust: exact; }
+            
+            #print-header { display: block !important; margin-bottom: 10px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            #print-footer { display: flex !important; margin-top: 30px; }
+            
+            table { font-size: 11px; width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: middle; }
+            th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-transform: uppercase; }
+            
+            /* Coluna assinatura maior na impressão */
+            .col-assinatura { width: 150px; height: 40px; }
         }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- OVERLAY DE CARREGAMENTO -->
+    <div id="loading-overlay" class="fixed inset-0 z-50 hidden flex flex-col items-center justify-center">
+        <div class="loader-spinner mb-4"></div>
+        <p class="text-blue-600 font-bold text-lg animate-pulse">Aguarde...</p>
+        <p class="text-gray-500 text-sm mt-1" id="loading-text">Processando sua solicitação</p>
+    </div>
+
+    <!-- MODAL DE ALERTA PERSONALIZADO -->
+    <div id="custom-alert" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-50 px-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-100">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                    <i data-lucide="info" class="h-6 w-6 text-blue-600"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="alert-title">Atenção</h3>
+                <div class="mt-2">
+                    <p class="text-sm text-gray-500" id="alert-message">Mensagem do sistema.</p>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button onclick="utils.closeAlert()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Header -->
     <header class="bg-blue-600 text-white p-4 shadow-md z-10">
@@ -65,9 +106,6 @@
                 <i data-lucide="droplet" class="w-6 h-6"></i>
                 Gestão de Água
             </h1>
-            <div id="loading-indicator" class="hidden">
-                <div class="loader border-white border-t-blue-800"></div>
-            </div>
         </div>
     </header>
 
@@ -90,13 +128,13 @@
 
             <!-- Form -->
             <div class="bg-white rounded-xl shadow-sm p-5">
-                <h2 class="text-lg font-semibold mb-4 text-blue-700">Novo Abastecimento</h2>
+                <h2 class="text-lg font-semibold mb-4 text-blue-700">Novo Agendamento</h2>
                 <form id="form-cadastro" class="space-y-4">
                     
                     <!-- Sticky Date -->
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
                         <label class="block text-sm font-bold text-blue-800 mb-1 flex items-center gap-1">
-                            <i data-lucide="calendar" class="w-4 h-4"></i> Data do Registro
+                            <i data-lucide="calendar" class="w-4 h-4"></i> Data do Abastecimento
                         </label>
                         <input type="date" name="dataAgendada" required id="input-date" class="w-full p-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-gray-700">
                     </div>
@@ -116,7 +154,6 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
-                            <!-- Adicionado id para máscara e maxlength -->
                             <input type="tel" name="whatsapp" id="input-whatsapp" maxlength="15" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="(84) 90000-0000">
                         </div>
                         <div>
@@ -142,7 +179,7 @@
                     </div>
 
                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-center items-center gap-2 mt-4">
-                        <i data-lucide="save" class="w-5 h-5"></i> Salvar Registro
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Agendamento
                     </button>
                 </form>
             </div>
@@ -150,7 +187,7 @@
 
         <!-- TELA 2: LISTAGEM / HISTÓRICO -->
         <div id="view-list" class="screen p-4 space-y-4">
-            <h2 class="text-xl font-bold text-gray-800">Histórico de Registros</h2>
+            <h2 class="text-xl font-bold text-gray-800">Histórico de Agendamentos</h2>
             
             <!-- Filtros -->
             <div class="bg-white p-3 rounded-lg shadow-sm space-y-3">
@@ -183,7 +220,7 @@
         <div id="view-reports" class="screen p-4 space-y-6">
             <!-- Cabeçalho de Impressão (Só aparece no PDF) -->
             <div id="print-header" class="hidden">
-                <h1 class="text-2xl font-bold">Relatório de Abastecimento - Rota</h1>
+                <h1 class="text-2xl font-bold uppercase">Relatório de Rota de Abastecimento</h1>
                 <p id="print-subtitle" class="text-sm text-gray-600">Gerado pelo sistema.</p>
             </div>
 
@@ -217,27 +254,39 @@
                 <div class="bg-gray-100 p-3 border-b border-gray-200 flex justify-between items-center no-print">
                     <span class="font-bold text-sm">Resultados (<span id="report-count">0</span>)</span>
                     <button onclick="window.print()" class="bg-blue-600 text-white text-xs px-3 py-2 rounded flex items-center gap-1 hover:bg-blue-700">
-                        <i data-lucide="printer" class="w-3 h-3"></i> Imprimir PDF
+                        <i data-lucide="printer" class="w-3 h-3"></i> Imprimir Rota (PDF)
                     </button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3">Data</th>
-                                <th class="px-4 py-3">Nome</th>
-                                <th class="px-4 py-3">Endereço</th>
-                                <th class="px-4 py-3">Local</th>
-                                <th class="px-4 py-3">Tipo</th>
+                                <th class="px-4 py-3">DATA DO ABASTECIMENTO</th>
+                                <th class="px-4 py-3">NOME</th>
+                                <th class="px-4 py-3">ENDEREÇO</th>
+                                <th class="px-4 py-3">LOCAL</th>
+                                <th class="px-4 py-3">TIPO</th>
+                                <th class="px-4 py-3 col-assinatura">ASSINATURA (RECEBEDOR)</th>
                             </tr>
                         </thead>
                         <tbody id="report-table-body"></tbody>
                     </table>
                 </div>
+
+                <!-- Rodapé de Impressão -->
+                <div id="print-footer" class="hidden justify-between items-end mt-10 pt-10 px-4 pb-4">
+                    <div class="text-xs text-gray-500" id="report-timestamp">
+                        <!-- Data e Hora gerada via JS -->
+                    </div>
+                    <div class="text-center">
+                        <div class="border-t border-black w-64 pt-2"></div>
+                        <p class="text-sm font-bold uppercase">Responsável pelo Abastecimento</p>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- TELA 4: CONFIGURAÇÕES (NOVA) -->
+        <!-- TELA 4: CONFIGURAÇÕES -->
         <div id="view-settings" class="screen p-4 space-y-6">
             <h2 class="text-xl font-bold text-gray-800">Configurações</h2>
             
@@ -248,9 +297,7 @@
                     <input type="text" id="new-local" class="flex-1 p-2 border rounded-lg text-sm" placeholder="Nova comunidade...">
                     <button onclick="app.addSetting('local')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus" class="w-5 h-5"></i></button>
                 </div>
-                <div id="list-settings-local" class="max-h-40 overflow-y-auto space-y-2 border-t pt-2">
-                    <!-- Lista injetada via JS -->
-                </div>
+                <div id="list-settings-local" class="max-h-40 overflow-y-auto space-y-2 border-t pt-2"></div>
             </div>
 
             <!-- Controle de Tipos -->
@@ -260,9 +307,7 @@
                     <input type="text" id="new-tipo" class="flex-1 p-2 border rounded-lg text-sm" placeholder="Novo tipo...">
                     <button onclick="app.addSetting('tipo')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus" class="w-5 h-5"></i></button>
                 </div>
-                <div id="list-settings-tipo" class="max-h-40 overflow-y-auto space-y-2 border-t pt-2">
-                    <!-- Lista injetada via JS -->
-                </div>
+                <div id="list-settings-tipo" class="max-h-40 overflow-y-auto space-y-2 border-t pt-2"></div>
             </div>
         </div>
 
@@ -301,13 +346,22 @@
                 return `${parts[2]}/${parts[1]}/${parts[0]}`;
             },
             getTodayInputFormat: () => new Date().toISOString().split('T')[0],
-            showToast: (msg) => alert(msg),
+            getDateTimeString: () => new Date().toLocaleString('pt-BR'),
             
-            // Máscara de WhatsApp
+            // Modal Customizado
+            showAlert: (title, msg) => {
+                document.getElementById('alert-title').textContent = title || "Atenção";
+                document.getElementById('alert-message').textContent = msg;
+                document.getElementById('custom-alert').classList.remove('hidden');
+            },
+            closeAlert: () => {
+                document.getElementById('custom-alert').classList.add('hidden');
+            },
+            
             maskPhone: (v) => {
-                v = v.replace(/\D/g, ""); // Remove tudo o que não é dígito
-                v = v.replace(/^(\d{2})(\d)/g, "($1) $2"); // Coloca parênteses em volta dos dois primeiros dígitos
-                v = v.replace(/(\d)(\d{4})$/, "$1-$2"); // Coloca hífen entre o quarto e o quinto dígitos
+                v = v.replace(/\D/g, "");
+                v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+                v = v.replace(/(\d)(\d{4})$/, "$1-$2");
                 return v;
             }
         };
@@ -315,7 +369,7 @@
 
     <!-- JS: API -->
     <script>
-        // *** IMPORTANTE: ATUALIZE AQUI O LINK DA SUA API ***
+        // *** IMPORTANTE: MANTENHA O LINK DA SUA API ***
         const API_URL = "https://script.google.com/macros/s/AKfycbzehxgBi_WiXXb5rRf-H8qfgh0vRl640-2BeTbzO5BWLoV4flMnEIqbOUHxQpVdTM3JRQ/exec";
         
         const MOCK_MODE = false; 
@@ -371,8 +425,9 @@
     <!-- JS: UI -->
     <script>
         const ui = {
-            loading: (isLoading) => {
-                const el = document.getElementById('loading-indicator');
+            loading: (isLoading, text = "Carregando...") => {
+                const el = document.getElementById('loading-overlay');
+                document.getElementById('loading-text').textContent = text;
                 if(isLoading) el.classList.remove('hidden'); else el.classList.add('hidden');
             },
             navigate: (screenId) => {
@@ -482,10 +537,13 @@
                 const inicio = utils.formatDateBR(document.getElementById('rel-inicio').value);
                 const fim = utils.formatDateBR(document.getElementById('rel-fim').value);
                 document.getElementById('print-subtitle').textContent = `Período: ${inicio} a ${fim}`;
+                
+                // Atualiza Data/Hora de Geração
+                document.getElementById('report-timestamp').textContent = `Gerado em: ${utils.getDateTimeString()}`;
 
                 tbody.innerHTML = '';
                 if(data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Sem dados</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Sem dados</td></tr>';
                     return;
                 }
                 data.forEach(item => {
@@ -497,6 +555,7 @@
                         <td class="px-4 py-3 text-gray-500 text-xs">${item.endereco}</td>
                         <td class="px-4 py-3 text-gray-500">${item.comunidade}</td>
                         <td class="px-4 py-3 text-gray-500">${item.tipo}</td>
+                        <td class="px-4 py-3 border-l text-center col-assinatura"></td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -511,7 +570,7 @@
             listState: { page: 1, totalPages: 1 },
 
             init: async () => {
-                ui.loading(true);
+                ui.loading(true, "Iniciando sistema...");
                 lucide.createIcons();
                 document.getElementById('input-date').value = utils.getTodayInputFormat();
                 document.getElementById('rel-inicio').value = utils.getTodayInputFormat();
@@ -532,7 +591,7 @@
                     ui.updateDashboard(response.dashboard);
                 } catch (e) {
                     console.error(e);
-                    utils.showToast("Erro ao conectar API: " + e);
+                    utils.showAlert("Erro", "Falha ao conectar: " + e);
                 } finally {
                     ui.loading(false);
                 }
@@ -548,7 +607,7 @@
 
             handleSubmit: async (e) => {
                 e.preventDefault();
-                ui.loading(true);
+                ui.loading(true, "Confirmando agendamento...");
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData.entries());
                 const selectedDate = data.dataAgendada;
@@ -556,20 +615,20 @@
                 try {
                     const response = await api.saveSupply(data);
                     if (response.success) {
-                        utils.showToast("Agendamento realizado!");
+                        utils.showAlert("Sucesso", "Agendamento realizado com sucesso!");
                         e.target.reset();
                         document.getElementById('input-date').value = selectedDate;
                         ui.updateDashboard(response.dashboard);
                     } else {
-                        utils.showToast("Erro: " + (response.error || "Desconhecido"));
+                        utils.showAlert("Erro", response.error || "Erro desconhecido");
                     }
-                } catch (err) { utils.showToast("Erro rede: " + err); } 
+                } catch (err) { utils.showAlert("Erro", "Problema de conexão: " + err); } 
                 finally { ui.loading(false); }
             },
 
             loadHistory: async (page) => {
                 if(page < 1) return;
-                ui.loading(true);
+                ui.loading(true, "Buscando histórico...");
                 
                 const filterDate = document.getElementById('filter-date').value;
                 const filterCom = document.getElementById('filter-com').value;
@@ -594,8 +653,9 @@
                 const start = document.getElementById('rel-inicio').value;
                 const end = document.getElementById('rel-fim').value;
                 const com = document.getElementById('rel-comunidade').value;
-                if(!start || !end) { utils.showToast("Selecione as datas."); return; }
-                ui.loading(true);
+                if(!start || !end) { utils.showAlert("Atenção", "Selecione as datas."); return; }
+                
+                ui.loading(true, "Gerando relatório...");
                 try {
                     const data = await api.getReport(start, end, com);
                     ui.renderReportTable(data);
@@ -610,7 +670,7 @@
 
                 if(!value) return;
                 
-                ui.loading(true);
+                ui.loading(true, "Adicionando...");
                 try {
                     const response = await api.addSetting(type, value);
                     if(response.success) {
@@ -619,8 +679,8 @@
                         
                         app.refreshAllSelects();
                         input.value = '';
-                        utils.showToast("Adicionado!");
-                    } else { utils.showToast("Erro ao adicionar"); }
+                        utils.showAlert("Sucesso", "Item adicionado!");
+                    } else { utils.showAlert("Erro", "Não foi possível adicionar."); }
                 } catch(e) { console.error(e); } 
                 finally { ui.loading(false); }
             },
@@ -628,7 +688,7 @@
             deleteSetting: async (type, value) => {
                 if(!confirm(`Deseja remover "${value}"?`)) return;
                 
-                ui.loading(true);
+                ui.loading(true, "Removendo...");
                 try {
                     const response = await api.deleteSetting(type, value);
                     if(response.success) {
@@ -636,8 +696,8 @@
                         else app.data.tipos = app.data.tipos.filter(i => i !== value);
                         
                         app.refreshAllSelects();
-                        utils.showToast("Removido!");
-                    } else { utils.showToast("Erro ao remover"); }
+                        utils.showAlert("Sucesso", "Item removido!");
+                    } else { utils.showAlert("Erro", "Não foi possível remover."); }
                 } catch(e) { console.error(e); } 
                 finally { ui.loading(false); }
             }
