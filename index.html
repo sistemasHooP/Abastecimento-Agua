@@ -55,11 +55,15 @@
         #install-banner { animation: slideUp 0.5s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
+        /* MODO EDIÇÃO - Bordas Laranjas */
+        .editing-mode { border-color: #f59e0b !important; }
+        .editing-mode-btn { background-color: #f59e0b !important; }
+
         /* IMPRESSÃO */
         @media print {
             @page { size: landscape; margin: 10mm; }
             body { background-color: white; font-family: serif; }
-            .no-print, .bottom-nav, header, form, #view-login, #custom-alert, #custom-confirm, #loading-overlay, #install-banner, .footer-credit { display: none !important; }
+            .no-print, .bottom-nav, header, form, #view-login, #custom-alert, #custom-confirm, #loading-overlay, #install-banner, .footer-credit, .action-buttons { display: none !important; }
             .screen { display: none; }
             #view-reports { display: block !important; padding: 0 !important; }
             #report-results { display: block !important; box-shadow: none; border: none; }
@@ -100,7 +104,7 @@
             <p class="text-sm text-center text-gray-500 mb-6" id="confirm-message">Tem certeza?</p>
             <div class="flex gap-3">
                 <button onclick="utils.closeConfirm(false)" class="flex-1 bg-gray-200 text-gray-800 rounded-lg py-2 font-medium hover:bg-gray-300">Não</button>
-                <button id="btn-confirm-yes" class="flex-1 bg-red-600 text-white rounded-lg py-2 font-medium hover:bg-red-700">Sim, Excluir</button>
+                <button id="btn-confirm-yes" class="flex-1 bg-red-600 text-white rounded-lg py-2 font-medium hover:bg-red-700">Sim</button>
             </div>
         </div>
     </div>
@@ -164,37 +168,42 @@
         <div id="view-home" class="screen active p-4 space-y-6">
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
-                    <p class="text-xs text-gray-500 font-bold uppercase" id="label-mes">Mês Atual</p>
+                    <p class="text-xs text-gray-500 font-bold uppercase" id="label-mes">Mês</p>
                     <p class="text-2xl font-bold text-gray-800 dashboard-counter" id="dash-mes">-</p>
                 </div>
                 <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
-                    <p class="text-xs text-gray-500 font-bold uppercase" id="label-ano">Ano Atual</p>
+                    <p class="text-xs text-gray-500 font-bold uppercase" id="label-ano">Ano</p>
                     <p class="text-2xl font-bold text-gray-800 dashboard-counter" id="dash-ano">-</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm p-5">
-                <h2 class="text-lg font-semibold mb-4 text-blue-700">Novo Agendamento</h2>
+            <!-- Formulário -->
+            <div class="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent transition-colors" id="card-form-wrapper">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-blue-700" id="form-title">Novo Agendamento</h2>
+                    <button id="btn-cancel-edit" onclick="app.cancelEdit()" class="hidden text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300">Cancelar</button>
+                </div>
+                
                 <form id="form-cadastro" class="space-y-4" onsubmit="event.preventDefault(); app.handleSubmit(event)">
-                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                        <label class="block text-sm font-bold text-blue-800 mb-1 flex items-center gap-1"><i data-lucide="calendar" class="w-4 h-4"></i> Data do Abastecimento</label>
+                    <!-- Hidden ID para Edição -->
+                    <input type="hidden" name="id" id="input-id">
+
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 transition-colors" id="date-wrapper">
+                        <label class="block text-sm font-bold text-blue-800 mb-1 flex items-center gap-1"><i data-lucide="calendar" class="w-4 h-4"></i> Data</label>
                         <input type="date" name="dataAgendada" required id="input-date" class="w-full p-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
                     </div>
-                    <div><input type="text" name="nome" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="Nome Completo"></div>
+                    <div><input type="text" name="nome" id="input-nome" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="Nome Completo"></div>
                     <div><select name="comunidade" id="select-comunidade" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none select-locais-dinamico"><option value="">Carregando...</option></select></div>
                     <div class="grid grid-cols-2 gap-3">
                         <div><input type="tel" name="whatsapp" id="input-whatsapp" maxlength="15" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="(84) 9XXXX-XXXX"></div>
-                        <div>
-                            <select name="periodo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none">
-                                <option value="Matutino">Matutino</option>
-                                <option value="Vespertino">Vespertino</option>
-                                <option value="Noturno">Noturno</option>
-                            </select>
-                        </div>
+                        <div><select name="periodo" id="input-periodo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none"><option value="Matutino">Matutino</option><option value="Vespertino">Vespertino</option><option value="Noturno">Noturno</option></select></div>
                     </div>
-                    <div><input type="text" name="endereco" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="Endereço / Referência"></div>
+                    <div><input type="text" name="endereco" id="input-endereco" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="Endereço"></div>
                     <div><select name="tipo" id="select-tipo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none select-tipos-dinamico"><option value="">Carregando...</option></select></div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-center items-center gap-2 mt-4"><i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Agendamento</button>
+                    
+                    <button type="submit" id="btn-submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-center items-center gap-2 mt-4">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> <span id="btn-submit-text">Confirmar Agendamento</span>
+                    </button>
                 </form>
             </div>
         </div>
@@ -272,7 +281,7 @@
         <div class="footer-credit text-center text-[10px] text-gray-400 py-6 mb-12">Desenvolvido por Thiego Pereira</div>
     </main>
 
-    <!-- NAVEGAÇÃO INFERIOR -->
+    <!-- NAV INFERIOR -->
     <nav class="bottom-nav bg-white border-t border-gray-200 fixed bottom-0 w-full z-20" id="main-nav">
         <div class="flex justify-around items-center h-16">
             <button onclick="ui.navigate('home')" class="nav-btn active flex-1 flex flex-col items-center justify-center text-blue-600"><i data-lucide="plus-circle" class="w-6 h-6"></i> <span class="text-[10px] mt-1">Novo</span></button>
@@ -282,13 +291,11 @@
         </div>
     </nav>
 
-    <!-- === SCRIPT PRINCIPAL === -->
+    <!-- SCRIPT -->
     <script>
-        // CONFIGURAÇÃO
         const API_URL = "https://script.google.com/macros/s/AKfycbzehxgBi_WiXXb5rRf-H8qfgh0vRl640-2BeTbzO5BWLoV4flMnEIqbOUHxQpVdTM3JRQ/exec";
         const MOCK_MODE = false;
 
-        // PWA LOGIC
         const pwa = {
             deferredPrompt: null,
             init: () => {
@@ -297,7 +304,7 @@
                         navigator.serviceWorker.register('./sw.js')
                             .then(() => console.log('SW OK'))
                             .catch(err => console.log('SW Fail:', err));
-                    } catch(e) { console.log("SW Err:", e); }
+                    } catch (e) { console.log("SW Reg Err:", e); }
                 }
                 window.addEventListener('beforeinstallprompt', (e) => {
                     e.preventDefault(); pwa.deferredPrompt = e;
@@ -319,7 +326,6 @@
             }
         };
 
-        // UTILITÁRIOS
         const utils = {
             formatDateBR: d => d ? d.split('-').reverse().join('/') : '',
             getToday: () => new Date().toISOString().split('T')[0],
@@ -333,7 +339,6 @@
             closeConfirm: (res) => { document.getElementById('custom-confirm').classList.add('hidden'); if(res && utils.confirmCallback) utils.confirmCallback(); }
         };
 
-        // INTERFACE (UI)
         const ui = {
             loading: (show, text) => { const el = document.getElementById('loading-overlay'); if(text) document.getElementById('loading-text').textContent = text; show ? el.classList.remove('hidden') : el.classList.add('hidden'); },
             toggleLogin: (show) => {
@@ -353,6 +358,37 @@
                 document.querySelectorAll('.nav-btn')[map[id]].classList.replace('text-gray-400','text-blue-600');
                 if(id === 'list') app.loadHistory(1);
             },
+            toggleEditMode: (active) => {
+                const wrapper = document.getElementById('card-form-wrapper');
+                const title = document.getElementById('form-title');
+                const btn = document.getElementById('btn-submit');
+                const btnText = document.getElementById('btn-submit-text');
+                const btnCancel = document.getElementById('btn-cancel-edit');
+                const dateWrapper = document.getElementById('date-wrapper');
+
+                if(active) {
+                    wrapper.classList.add('editing-mode');
+                    title.textContent = "Editando Agendamento";
+                    title.classList.add('text-amber-600');
+                    btn.classList.add('editing-mode-btn');
+                    btnText.textContent = "Atualizar Dados";
+                    btnCancel.classList.remove('hidden');
+                    dateWrapper.classList.add('bg-amber-50', 'border-amber-100');
+                    dateWrapper.classList.remove('bg-blue-50', 'border-blue-100');
+                } else {
+                    wrapper.classList.remove('editing-mode');
+                    title.textContent = "Novo Agendamento";
+                    title.classList.remove('text-amber-600');
+                    btn.classList.remove('editing-mode-btn');
+                    btnText.textContent = "Confirmar Agendamento";
+                    btnCancel.classList.add('hidden');
+                    dateWrapper.classList.remove('bg-amber-50', 'border-amber-100');
+                    dateWrapper.classList.add('bg-blue-50', 'border-blue-100');
+                    document.getElementById('form-cadastro').reset();
+                    document.getElementById('input-id').value = '';
+                    document.getElementById('input-date').value = utils.getToday(); // Restore sticky date
+                }
+            },
             renderList: (data, page, total) => {
                 const c = document.getElementById('list-container'); c.innerHTML = '';
                 if(!data || !data.length) { c.innerHTML = '<div class="text-center text-gray-500 mt-10">Vazio</div>'; return; }
@@ -366,7 +402,22 @@
                         btnClass = 'bg-green-500 hover:bg-green-600';
                         btnAction = `href="${linkWa}" target="_blank"`;
                     }
-                    c.innerHTML += `<div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-2"><div class="flex justify-between"><div><h3 class="font-bold">${i.nome}</h3><p class="text-sm text-gray-500">${i.comunidade}</p></div><span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded h-fit">${i.tipo}</span></div><div class="mt-2 text-sm text-gray-600 flex justify-between items-center"><span>${utils.formatDateBR(i.dataAgendada)}</span><a ${btnAction} class="${btnClass} text-white px-2 py-1 rounded text-xs flex items-center gap-1">${whatsappIcon} Confirmar</a></div></div>`;
+                    const itemJson = JSON.stringify(i).replace(/"/g, '&quot;');
+                    c.innerHTML += `
+                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-2">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><h3 class="font-bold text-gray-800">${i.nome}</h3><p class="text-sm text-gray-500 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${i.comunidade}</p></div>
+                            <div class="flex gap-2">
+                                <button onclick="app.prepareEdit(${itemJson})" class="text-amber-500 hover:text-amber-700 bg-amber-50 p-1.5 rounded action-buttons"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                <button onclick="app.deleteItem('${i.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded action-buttons"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded inline-block mb-2">${i.tipo}</span>
+                        <div class="border-t pt-2 flex justify-between items-center text-sm text-gray-600">
+                            <span class="flex items-center gap-1 font-medium"><i data-lucide="calendar" class="w-3 h-3"></i> ${utils.formatDateBR(i.dataAgendada)}</span>
+                            <a ${btnAction} class="${btnClass} text-white px-2 py-1.5 rounded text-xs flex items-center gap-1 shadow-sm font-bold no-underline">${whatsappIcon} Confirmar</a>
+                        </div>
+                    </div>`;
                 });
                 const pc = document.getElementById('pagination-controls');
                 if(total > 1) { pc.classList.remove('hidden'); document.getElementById('page-info').innerText = `Pág ${page}/${total}`; } else pc.classList.add('hidden');
@@ -374,8 +425,8 @@
             }
         };
 
-        // --- API ---
         const api = {
+            wakeUp: async () => { try { await fetch(`${API_URL}?op=config`, { mode: 'no-cors' }); console.log("System Awake"); } catch (e) { console.log("Wake up failed", e); } },
             req: async (body) => {
                 if(MOCK_MODE) return {success:true, dashboard:{mes:1,ano:1}, data:[], totalPages:1};
                 const res = await fetch(API_URL, { method: 'POST', headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
@@ -388,13 +439,17 @@
             }
         };
 
-        // --- APLICAÇÃO ---
         const app = {
             data: { locais:[], tipos:[] },
-            state: { page:1, total:1, user: null },
+            state: { page:1, total:1, user: null, editingId: null },
             init: async () => {
                 pwa.init();
                 ui.loading(true, "Iniciando...");
+                
+                // Wake up Google Sheets
+                api.wakeUp();
+                setInterval(() => api.wakeUp(), 4 * 60 * 1000); // Keep alive every 4 min
+
                 if(window.lucide) lucide.createIcons();
                 ui.updateDashboardLabels();
                 const today = utils.getToday();
@@ -447,13 +502,47 @@
                 render('list-settings-local', app.data.locais, 'local'); render('list-settings-tipo', app.data.tipos, 'tipo');
                 if(window.lucide) lucide.createIcons();
             },
+            // EDIT LOGIC
+            prepareEdit: (item) => {
+                app.state.editingId = item.id;
+                document.getElementById('input-id').value = item.id;
+                document.getElementById('input-date').value = item.dataAgendada;
+                document.getElementById('input-nome').value = item.nome;
+                document.getElementById('input-whatsapp').value = item.whatsapp;
+                document.getElementById('input-endereco').value = item.endereco;
+                document.getElementById('select-comunidade').value = item.comunidade;
+                document.getElementById('select-tipo').value = item.tipo;
+                document.getElementById('input-periodo').value = item.periodo;
+                ui.toggleEditMode(true);
+                ui.navigate('home');
+                window.scrollTo({top:0, behavior:'smooth'});
+                utils.showAlert("Modo Edição", "Altere os dados e clique em Atualizar.");
+            },
+            cancelEdit: () => { app.state.editingId = null; ui.toggleEditMode(false); },
+            deleteItem: (id) => {
+                utils.showConfirm("Excluir", "Deseja remover este registro?", async () => {
+                    ui.loading(true, "Excluindo...");
+                    try {
+                        const res = await api.req({op:'delete_supply', payload: {id}});
+                        if(res.success) { utils.showAlert("Sucesso", "Registro excluído!"); app.loadHistory(app.state.page); app.updateDashboard(res.dashboard); } else utils.showAlert("Erro", res.error);
+                    } catch(e) { utils.showAlert("Erro", e); }
+                    ui.loading(false);
+                });
+            },
             handleSubmit: async (e) => {
                 if(e) e.preventDefault();
-                ui.loading(true, "Salvando...");
                 const form = document.getElementById('form-cadastro'); const data = Object.fromEntries(new FormData(form).entries()); const dateBackup = data.dataAgendada;
+                const operation = app.state.editingId ? 'update_supply' : 'save';
+                const loadText = app.state.editingId ? "Atualizando..." : "Salvando...";
+                ui.loading(true, loadText);
                 try {
-                    const res = await api.req({op:'save', payload: data});
-                    if(res.success) { utils.showAlert("Sucesso", "Registro salvo!"); form.reset(); document.getElementById('input-date').value = dateBackup; app.updateDashboard(res.dashboard); } else utils.showAlert("Erro", res.error);
+                    const res = await api.req({op: operation, payload: data});
+                    if(res.success) { 
+                        utils.showAlert("Sucesso", res.message || "Operação realizada!"); 
+                        if(app.state.editingId) app.cancelEdit(); 
+                        else { form.reset(); document.getElementById('input-date').value = dateBackup; }
+                        app.updateDashboard(res.dashboard); 
+                    } else utils.showAlert("Erro", res.error);
                 } catch(err) { utils.showAlert("Erro", err); }
                 ui.loading(false);
             },
