@@ -5,41 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Controle de Abastecimento</title>
     
-    <!-- CONFIGURAÇÃO PWA -->
+    <!-- Configuração PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/427/427112.png">
 
-    <!-- BIBLIOTECAS (Tailwind CSS e Lucide Icons) -->
+    <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        /* === ESTILOS GERAIS === */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f3f4f6; 
-            -webkit-tap-highlight-color: transparent; 
-        }
-        
-        /* Transições de Tela */
+        /* CSS GERAL */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
         .screen { display: none; animation: fadeIn 0.4s ease-in-out; }
         .screen.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Animação de Pulso (Dashboard) */
         .pulse-update { animation: pulse-green 1s ease-in-out; }
-        @keyframes pulse-green { 
-            0% { transform: scale(1); color: #1f2937; } 
-            50% { transform: scale(1.1); color: #16a34a; } 
-            100% { transform: scale(1); color: #1f2937; } 
-        }
+        @keyframes pulse-green { 0% { transform: scale(1); color: #1f2937; } 50% { transform: scale(1.1); color: #16a34a; } 100% { transform: scale(1); color: #1f2937; } }
         
         .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
         
-        /* === TELA DE LOGIN === */
+        /* LOGIN STYLE */
         #view-login {
             background-color: #1e3a8a;
             background-size: cover;
@@ -49,40 +38,33 @@
             background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.2) 100%);
         }
 
-        /* Logo Redonda */
+        /* LOGO REDONDA COM BORDA */
         #login-logo {
             width: 120px; height: 120px; object-fit: cover;
             border-radius: 50%; border: 4px solid white;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-            display: none; /* Controlado via JS */
+            display: none;
         }
 
-        /* === LOADER E MODAIS === */
+        /* LOADER & MODALS */
         #loading-overlay { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px); }
-        .loader-spinner { 
-            border: 4px solid #e5e7eb; border-top: 4px solid #2563eb; 
-            border-radius: 50%; width: 40px; height: 40px; 
-            animation: spin 1s linear infinite; 
-        }
+        .loader-spinner { border: 4px solid #e5e7eb; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Banner de Instalação (PWA) */
+        /* BANNER PWA */
         #install-banner { animation: slideUp 0.5s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        /* === ESTILOS DE IMPRESSÃO (PDF) === */
+        /* IMPRESSÃO */
         @media print {
             @page { size: landscape; margin: 10mm; }
             body { background-color: white; font-family: serif; }
             .no-print, .bottom-nav, header, form, #view-login, #custom-alert, #custom-confirm, #loading-overlay, #install-banner, .footer-credit { display: none !important; }
             .screen { display: none; }
-            
             #view-reports { display: block !important; padding: 0 !important; }
             #report-results { display: block !important; box-shadow: none; border: none; }
-            
             #print-header { display: block !important; margin-bottom: 10px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
             #print-footer { display: flex !important; margin-top: 30px; justify-content: space-between; align-items: flex-end; }
-            
             table { font-size: 11px; width: 100%; border-collapse: collapse; }
             th, td { border: 1px solid #000; padding: 6px; text-align: left; }
             th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-transform: uppercase; }
@@ -92,16 +74,14 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- === CAMADA DE INTERFACE (MODAIS/LOADING) === -->
-    
-    <!-- Tela de Carregamento -->
+    <!-- OVERLAYS -->
     <div id="loading-overlay" class="fixed inset-0 z-[60] hidden flex flex-col items-center justify-center">
         <div class="loader-spinner mb-4"></div>
         <p class="text-blue-600 font-bold text-lg animate-pulse">Aguarde...</p>
         <p class="text-gray-500 text-sm mt-1" id="loading-text">Carregando...</p>
     </div>
 
-    <!-- Modal de Alerta -->
+    <!-- MODAL ALERTA -->
     <div id="custom-alert" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black bg-opacity-50 px-4 backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-100">
             <h3 class="text-lg font-bold text-gray-900 mb-2" id="alert-title">Atenção</h3>
@@ -110,7 +90,7 @@
         </div>
     </div>
 
-    <!-- Modal de Confirmação -->
+    <!-- MODAL CONFIRMAÇÃO -->
     <div id="custom-confirm" class="fixed inset-0 z-[80] hidden flex items-center justify-center bg-black bg-opacity-50 px-4 backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-100">
             <div class="flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mx-auto mb-4">
@@ -125,7 +105,7 @@
         </div>
     </div>
 
-    <!-- Banner de Instalação PWA -->
+    <!-- BANNER PWA -->
     <div id="install-banner" class="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-200 p-4 shadow-2xl hidden flex-col sm:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">
             <div class="bg-blue-600 p-2 rounded-lg text-white"><i data-lucide="download" class="w-6 h-6"></i></div>
@@ -137,12 +117,11 @@
         </div>
     </div>
 
-    <!-- === TELA DE LOGIN === -->
+    <!-- LOGIN -->
     <div id="view-login" class="fixed inset-0 z-50 flex flex-col justify-end hidden">
         <div class="login-overlay absolute inset-0"></div>
         <div class="relative z-10 p-8 pb-12 w-full max-w-md mx-auto">
             <div class="mb-8 text-center flex flex-col items-center">
-                <!-- Logo -->
                 <img id="login-logo" src="" alt="Logo" class="mb-6 mx-auto">
                 <div id="login-logo-placeholder" class="h-28 w-28 bg-blue-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg border-4 border-white/30">
                     <i data-lucide="droplet" class="w-12 h-12 text-white"></i>
@@ -150,7 +129,6 @@
                 <h1 class="text-3xl font-bold text-white mb-1" id="app-name-display">Gestão de Água</h1>
                 <p class="text-blue-200" id="greeting-display">Bem-vindo ao sistema</p>
             </div>
-            
             <form id="form-login" class="space-y-4" onsubmit="event.preventDefault(); app.login(event)">
                 <div class="bg-white/10 backdrop-blur-md rounded-xl p-1 border border-white/20">
                     <div class="flex items-center px-3 border-b border-white/10">
@@ -168,7 +146,7 @@
         </div>
     </div>
 
-    <!-- === HEADER PRINCIPAL === -->
+    <!-- HEADER PRINCIPAL -->
     <header class="bg-blue-600 text-white p-4 shadow-md z-10 no-print" id="app-header">
         <div class="flex justify-between items-center">
             <h1 class="text-lg font-bold flex items-center gap-2"><i data-lucide="droplet" class="w-6 h-6"></i><span id="header-title">Gestão</span></h1>
@@ -179,10 +157,10 @@
         </div>
     </header>
 
-    <!-- === CONTEÚDO PRINCIPAL === -->
+    <!-- CONTEÚDO PRINCIPAL -->
     <main class="flex-1 overflow-y-auto pb-20 relative bg-gray-100" id="main-content">
         
-        <!-- TELA 1: HOME (Dashboard + Cadastro) -->
+        <!-- HOME / CADASTRO -->
         <div id="view-home" class="screen active p-4 space-y-6">
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
@@ -221,7 +199,7 @@
             </div>
         </div>
 
-        <!-- TELA 2: HISTÓRICO -->
+        <!-- LISTA -->
         <div id="view-list" class="screen p-4 space-y-4">
             <h2 class="text-xl font-bold text-gray-800">Histórico</h2>
             <div class="bg-white p-3 rounded-lg shadow-sm space-y-3">
@@ -239,7 +217,7 @@
             </div>
         </div>
 
-        <!-- TELA 3: RELATÓRIOS -->
+        <!-- RELATÓRIOS -->
         <div id="view-reports" class="screen p-4 space-y-6">
             <div id="print-header" class="hidden">
                 <h1 class="text-2xl font-bold uppercase">Relatório de Rota</h1>
@@ -276,7 +254,7 @@
             </div>
         </div>
 
-        <!-- TELA 4: CONFIGURAÇÕES -->
+        <!-- CONFIG -->
         <div id="view-settings" class="screen p-4 space-y-6">
             <h2 class="text-xl font-bold text-gray-800">Configurações</h2>
             <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
