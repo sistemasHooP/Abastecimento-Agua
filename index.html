@@ -4,23 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Controle de Abastecimento</title>
-    <!-- Tailwind CSS -->
+    <!-- Bibliotecas Externas (Tailwind CSS e Lucide Icons) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
+        /* CSS GERAL E ANIMAÇÕES */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
         .screen { display: none; animation: fadeIn 0.4s ease-in-out; }
         .screen.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Animação de Pulso para atualização de dados */
         .pulse-update { animation: pulse-green 1s ease-in-out; }
         @keyframes pulse-green { 0% { transform: scale(1); color: #1f2937; } 50% { transform: scale(1.1); color: #16a34a; } 100% { transform: scale(1); color: #1f2937; } }
+        
         .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
         
-        /* ESTILOS DE LOGIN */
+        /* ESTILO DA TELA DE LOGIN */
         #view-login {
-            background-color: #1e3a8a;
+            background-color: #1e3a8a; /* Azul escuro de fundo */
             background-size: cover;
             background-position: center;
         }
@@ -39,16 +42,19 @@
             display: none; /* Controlado via JS */
         }
 
+        /* INDICADOR DE CARREGAMENTO (SPINNER) */
         #loading-overlay { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px); }
         .loader-spinner { border: 4px solid #e5e7eb; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* ESTILOS DE IMPRESSÃO (PDF) */
+        /* ESTILOS ESPECÍFICOS PARA IMPRESSÃO (PDF) */
         @media print {
             @page { size: landscape; margin: 10mm; }
             body { background-color: white; font-family: serif; }
-            .no-print, .bottom-nav, header, form, #view-login, #custom-alert, #loading-overlay, .footer-credit { display: none !important; }
+            /* Esconde elementos não imprimíveis */
+            .no-print, .bottom-nav, header, form, #view-login, #custom-alert, #custom-confirm, #loading-overlay, .footer-credit { display: none !important; }
             .screen { display: none; }
+            /* Força a exibição do relatório */
             #view-reports { display: block !important; padding: 0 !important; }
             #report-results { display: block !important; box-shadow: none; border: none; }
             #print-header { display: block !important; margin-bottom: 10px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
@@ -62,13 +68,16 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- OVERLAYS -->
+    <!-- === COMPONENTES DE INTERFACE (MODAIS E OVERLAYS) === -->
+    
+    <!-- Tela de Carregamento -->
     <div id="loading-overlay" class="fixed inset-0 z-[60] hidden flex flex-col items-center justify-center">
         <div class="loader-spinner mb-4"></div>
         <p class="text-blue-600 font-bold text-lg animate-pulse">Aguarde...</p>
         <p class="text-gray-500 text-sm mt-1" id="loading-text">Carregando...</p>
     </div>
 
+    <!-- Modal de Alerta Simples -->
     <div id="custom-alert" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black bg-opacity-50 px-4 backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-100">
             <h3 class="text-lg font-bold text-gray-900 mb-2" id="alert-title">Atenção</h3>
@@ -77,16 +86,31 @@
         </div>
     </div>
 
-    <!-- TELA DE LOGIN -->
+    <!-- Modal de Confirmação (Sim/Não) -->
+    <div id="custom-confirm" class="fixed inset-0 z-[80] hidden flex items-center justify-center bg-black bg-opacity-50 px-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-100">
+            <div class="flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mx-auto mb-4">
+                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>
+            </div>
+            <h3 class="text-lg font-bold text-center text-gray-900 mb-2" id="confirm-title">Confirmar</h3>
+            <p class="text-sm text-center text-gray-500 mb-6" id="confirm-message">Tem certeza?</p>
+            <div class="flex gap-3">
+                <button onclick="utils.closeConfirm(false)" class="flex-1 bg-gray-200 text-gray-800 rounded-lg py-2 font-medium hover:bg-gray-300">Não</button>
+                <button id="btn-confirm-yes" class="flex-1 bg-red-600 text-white rounded-lg py-2 font-medium hover:bg-red-700">Sim, Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- === TELA DE LOGIN === -->
     <div id="view-login" class="fixed inset-0 z-50 flex flex-col justify-end hidden">
         <div class="login-overlay absolute inset-0"></div>
         <div class="relative z-10 p-8 pb-12 w-full max-w-md mx-auto">
             <div class="mb-8 text-center flex flex-col items-center">
                 
-                <!-- Logo Redonda com Borda -->
+                <!-- Logo -->
                 <img id="login-logo" src="" alt="Logo" class="mb-6 mx-auto">
                 
-                <!-- Placeholder (Bolinha com ícone) caso não tenha logo -->
+                <!-- Placeholder (ícone padrão se não tiver logo) -->
                 <div id="login-logo-placeholder" class="h-28 w-28 bg-blue-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg border-4 border-white/30">
                     <i data-lucide="droplet" class="w-12 h-12 text-white"></i>
                 </div>
@@ -95,7 +119,7 @@
                 <p class="text-blue-200" id="greeting-display">Bem-vindo ao sistema</p>
             </div>
 
-            <!-- Formulário de Login com prevenção de reload -->
+            <!-- Formulário de Login (com prevenção de reload) -->
             <form id="form-login" class="space-y-4" onsubmit="event.preventDefault(); app.login(event)">
                 <div class="bg-white/10 backdrop-blur-md rounded-xl p-1 border border-white/20">
                     <div class="flex items-center px-3 border-b border-white/10">
@@ -115,7 +139,7 @@
         </div>
     </div>
 
-    <!-- APP HEADER -->
+    <!-- === CABEÇALHO DO APP (SÓ APÓS LOGIN) === -->
     <header class="bg-blue-600 text-white p-4 shadow-md z-10 no-print" id="app-header">
         <div class="flex justify-between items-center">
             <h1 class="text-lg font-bold flex items-center gap-2">
@@ -129,11 +153,12 @@
         </div>
     </header>
 
-    <!-- CONTENT -->
+    <!-- === ÁREA DE CONTEÚDO PRINCIPAL === -->
     <main class="flex-1 overflow-y-auto pb-20 relative bg-gray-100" id="main-content">
         
-        <!-- DASHBOARD / CADASTRO -->
+        <!-- TELA 1: HOME (DASHBOARD E CADASTRO) -->
         <div id="view-home" class="screen active p-4 space-y-6">
+            <!-- Cards de Dashboard -->
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
                     <p class="text-xs text-gray-500 font-bold uppercase" id="label-mes">Mês Atual</p>
@@ -145,18 +170,33 @@
                 </div>
             </div>
 
+            <!-- Formulário de Agendamento -->
             <div class="bg-white rounded-xl shadow-sm p-5">
                 <h2 class="text-lg font-semibold mb-4 text-blue-700">Novo Agendamento</h2>
-                <!-- ADICIONADO: onsubmit direto para evitar reload -->
+                
+                <!-- IMPORTANTE: onsubmit direto no HTML para evitar reload em caso de falha de listener -->
                 <form id="form-cadastro" class="space-y-4" onsubmit="event.preventDefault(); app.handleSubmit(event)">
+                    
+                    <!-- Campo Data (Sticky - não apaga ao salvar) -->
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
                         <label class="block text-sm font-bold text-blue-800 mb-1 flex items-center gap-1"><i data-lucide="calendar" class="w-4 h-4"></i> Data do Abastecimento</label>
                         <input type="date" name="dataAgendada" required id="input-date" class="w-full p-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
                     </div>
-                    <div><input type="text" name="nome" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nome Completo"></div>
-                    <div><select name="comunidade" id="select-comunidade" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none select-locais-dinamico"><option value="">Carregando...</option></select></div>
+
+                    <div>
+                        <input type="text" name="nome" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nome Completo">
+                    </div>
+
+                    <div>
+                        <select name="comunidade" id="select-comunidade" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none select-locais-dinamico">
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-3">
-                        <div><input type="tel" name="whatsapp" id="input-whatsapp" maxlength="15" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="WhatsApp"></div>
+                        <div>
+                            <input type="tel" name="whatsapp" id="input-whatsapp" maxlength="15" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="WhatsApp">
+                        </div>
                         <div>
                             <select name="periodo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none">
                                 <option value="Matutino">Matutino</option>
@@ -165,24 +205,45 @@
                             </select>
                         </div>
                     </div>
-                    <div><input type="text" name="endereco" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="Endereço / Referência"></div>
-                    <div><select name="tipo" id="select-tipo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none select-tipos-dinamico"><option value="">Carregando...</option></select></div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-center items-center gap-2 mt-4"><i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Agendamento</button>
+
+                    <div>
+                        <input type="text" name="endereco" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="Endereço / Referência">
+                    </div>
+
+                    <div>
+                        <select name="tipo" id="select-tipo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none select-tipos-dinamico">
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-center items-center gap-2 mt-4">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Agendamento
+                    </button>
                 </form>
             </div>
         </div>
 
-        <!-- LISTA -->
+        <!-- TELA 2: HISTÓRICO -->
         <div id="view-list" class="screen p-4 space-y-4">
             <h2 class="text-xl font-bold text-gray-800">Histórico</h2>
+            
+            <!-- Filtros -->
             <div class="bg-white p-3 rounded-lg shadow-sm space-y-3">
                 <div class="grid grid-cols-2 gap-2">
                     <input type="date" id="filter-date" class="w-full p-2 border rounded text-sm bg-gray-50">
-                    <select id="filter-com" class="w-full p-2 border rounded text-sm bg-gray-50 select-locais-dinamico"><option value="">Todas</option></select>
+                    <select id="filter-com" class="w-full p-2 border rounded text-sm bg-gray-50 select-locais-dinamico">
+                        <option value="">Todas</option>
+                    </select>
                 </div>
                 <button onclick="app.loadHistory(1)" class="w-full bg-blue-100 text-blue-700 font-bold py-2 rounded text-sm">Filtrar</button>
             </div>
-            <div id="list-container" class="space-y-3 pb-2 min-h-[100px]"><div class="text-center text-gray-400 mt-10">...</div></div>
+
+            <!-- Lista de Itens -->
+            <div id="list-container" class="space-y-3 pb-2 min-h-[100px]">
+                <div class="text-center text-gray-400 mt-10">...</div>
+            </div>
+
+            <!-- Paginação -->
             <div id="pagination-controls" class="flex justify-between items-center pt-2 hidden">
                 <button onclick="app.changePage(-1)" class="bg-white border px-4 py-2 rounded text-sm font-medium">Anterior</button>
                 <span id="page-info" class="text-xs text-gray-500 font-bold"></span>
@@ -190,12 +251,13 @@
             </div>
         </div>
 
-        <!-- RELATÓRIOS -->
+        <!-- TELA 3: RELATÓRIOS -->
         <div id="view-reports" class="screen p-4 space-y-6">
             <div id="print-header" class="hidden">
                 <h1 class="text-2xl font-bold uppercase">Relatório de Rota</h1>
                 <p id="print-subtitle" class="text-sm text-gray-600"></p>
             </div>
+
             <div class="no-print">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Relatórios</h2>
                 <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
@@ -207,6 +269,7 @@
                     <button onclick="app.generateReport()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-lg flex justify-center items-center gap-2"><i data-lucide="file-bar-chart" class="w-5 h-5"></i> Gerar</button>
                 </div>
             </div>
+
             <div id="report-results" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
                 <div class="bg-gray-100 p-3 border-b flex justify-between items-center no-print">
                     <span class="font-bold text-sm">Total: <span id="report-count">0</span></span>
@@ -230,28 +293,37 @@
             </div>
         </div>
 
-        <!-- CONFIG -->
+        <!-- TELA 4: CONFIGURAÇÕES -->
         <div id="view-settings" class="screen p-4 space-y-6">
             <h2 class="text-xl font-bold text-gray-800">Configurações</h2>
+            
             <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
                 <h3 class="font-bold text-blue-700 flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4"></i> Comunidades</h3>
-                <div class="flex gap-2"><input type="text" id="new-local" class="flex-1 p-2 border rounded-lg text-sm"><button onclick="app.addSetting('local')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button></div>
+                <div class="flex gap-2">
+                    <input type="text" id="new-local" class="flex-1 p-2 border rounded-lg text-sm" placeholder="Nova...">
+                    <button onclick="app.addSetting('local')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button>
+                </div>
                 <div id="list-settings-local" class="max-h-40 overflow-y-auto border-t pt-2 space-y-2"></div>
             </div>
+
             <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
-                <h3 class="font-bold text-blue-700 flex items-center gap-2"><i data-lucide="droplet" class="w-4 h-4"></i> Tipos</h3>
-                <div class="flex gap-2"><input type="text" id="new-tipo" class="flex-1 p-2 border rounded-lg text-sm"><button onclick="app.addSetting('tipo')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button></div>
+                <!-- TÍTULO CORRIGIDO -->
+                <h3 class="font-bold text-blue-700 flex items-center gap-2"><i data-lucide="droplet" class="w-4 h-4"></i> Tipo de Abastecimento</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="new-tipo" class="flex-1 p-2 border rounded-lg text-sm" placeholder="Novo...">
+                    <button onclick="app.addSetting('tipo')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button>
+                </div>
                 <div id="list-settings-tipo" class="max-h-40 overflow-y-auto border-t pt-2 space-y-2"></div>
             </div>
         </div>
 
-        <!-- CREDITOS -->
+        <!-- CRÉDITOS -->
         <div class="footer-credit text-center text-[10px] text-gray-400 py-6 mb-12">
             Desenvolvido por Thiego Pereira
         </div>
     </main>
 
-    <!-- NAV -->
+    <!-- NAVEGAÇÃO INFERIOR -->
     <nav class="bottom-nav bg-white border-t border-gray-200 fixed bottom-0 w-full z-20" id="main-nav">
         <div class="flex justify-around items-center h-16">
             <button onclick="ui.navigate('home')" class="nav-btn active flex-1 flex flex-col items-center justify-center text-blue-600"><i data-lucide="plus-circle" class="w-6 h-6"></i> <span class="text-[10px] mt-1">Novo</span></button>
@@ -261,11 +333,13 @@
         </div>
     </nav>
 
+    <!-- === LÓGICA DO SISTEMA === -->
     <script>
-        // ATUALIZE AQUI O LINK DA SUA API
+        // *** URL DA API DO GOOGLE APPS SCRIPT ***
         const API_URL = "https://script.google.com/macros/s/AKfycbzehxgBi_WiXXb5rRf-H8qfgh0vRl640-2BeTbzO5BWLoV4flMnEIqbOUHxQpVdTM3JRQ/exec";
         const MOCK_MODE = false;
 
+        // --- UTILS ---
         const utils = {
             formatDateBR: d => d ? d.split('-').reverse().join('/') : '',
             getToday: () => new Date().toISOString().split('T')[0],
@@ -275,11 +349,32 @@
                 return `${months[now.getMonth()]} / ${now.getFullYear()}`;
             },
             getCurrentYearLabel: () => `Ano Atual ${new Date().getFullYear()}`,
+            
             maskPhone: v => v.replace(/\D/g,"").replace(/^(\d{2})(\d)/g,"($1) $2").replace(/(\d)(\d{4})$/,"$1-$2"),
-            showAlert: (t, m) => { document.getElementById('alert-title').innerText=t; document.getElementById('alert-message').innerText=m; document.getElementById('custom-alert').classList.remove('hidden'); },
-            closeAlert: () => document.getElementById('custom-alert').classList.add('hidden')
+            
+            // Modal de Alerta
+            showAlert: (t, m) => { 
+                document.getElementById('alert-title').innerText=t; 
+                document.getElementById('alert-message').innerText=m; 
+                document.getElementById('custom-alert').classList.remove('hidden'); 
+            },
+            closeAlert: () => document.getElementById('custom-alert').classList.add('hidden'),
+            
+            // Modal de Confirmação (Callback)
+            confirmCallback: null,
+            showConfirm: (title, msg, callback) => {
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = msg;
+                utils.confirmCallback = callback;
+                document.getElementById('custom-confirm').classList.remove('hidden');
+            },
+            closeConfirm: (result) => {
+                document.getElementById('custom-confirm').classList.add('hidden');
+                if(result && utils.confirmCallback) utils.confirmCallback();
+            }
         };
 
+        // --- UI MANAGER ---
         const ui = {
             loading: (show, text) => { 
                 const el = document.getElementById('loading-overlay');
@@ -312,21 +407,48 @@
             renderList: (data, page, total) => {
                 const c = document.getElementById('list-container'); c.innerHTML = '';
                 if(!data || !data.length) { c.innerHTML = '<div class="text-center text-gray-500 mt-10">Vazio</div>'; return; }
+                
                 data.forEach(i => {
-                    c.innerHTML += `<div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-2">
-                        <div class="flex justify-between"><div><h3 class="font-bold">${i.nome}</h3><p class="text-sm text-gray-500">${i.comunidade}</p></div><span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded h-fit">${i.tipo}</span></div>
-                        <div class="mt-2 text-sm text-gray-600 flex justify-between"><span>${utils.formatDateBR(i.dataAgendada)}</span><span>${i.periodo}</span></div>
+                    // LÓGICA BOTÃO WHATSAPP - MENSAGEM PERSONALIZADA
+                    let linkWa = '';
+                    if(i.whatsapp) {
+                        const cleanPhone = String(i.whatsapp).replace(/\D/g,''); // CORREÇÃO APLICADA AQUI
+                        const msg = encodeURIComponent(`Olá ${i.nome}, confirmamos seu agendamento para o abastecimentos de água de ${i.tipo} para o dia ${utils.formatDateBR(i.dataAgendada)}.`);
+                        linkWa = `https://wa.me/55${cleanPhone}?text=${msg}`;
+                    } else {
+                        linkWa = "#";
+                    }
+
+                    // Se não tiver whats, botão fica cinza
+                    const btnClass = i.whatsapp ? "bg-green-500 hover:bg-green-600" : "bg-gray-400 cursor-not-allowed";
+                    const btnAction = i.whatsapp ? `href="${linkWa}" target="_blank"` : `onclick="utils.showAlert('Aviso','Telefone não cadastrado')"`;
+
+                    c.innerHTML += `
+                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-2">
+                        <div class="flex justify-between">
+                            <div><h3 class="font-bold">${i.nome}</h3><p class="text-sm text-gray-500">${i.comunidade}</p></div>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded h-fit">${i.tipo}</span>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600 flex justify-between items-center">
+                            <span>${utils.formatDateBR(i.dataAgendada)}</span>
+                            <a ${btnAction} class="${btnClass} text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                                <i data-lucide="message-circle" class="w-3 h-3"></i> Confirmar
+                            </a>
+                        </div>
                     </div>`;
                 });
+                
                 const pc = document.getElementById('pagination-controls');
                 if(total > 1) { pc.classList.remove('hidden'); document.getElementById('page-info').innerText = `Pág ${page}/${total}`; } else pc.classList.add('hidden');
+                lucide.createIcons();
             }
         };
 
+        // --- API HANDLER ---
         const api = {
             req: async (body) => {
                 if(MOCK_MODE) return {success:true, dashboard:{mes:1,ano:1}, data:[], totalPages:1};
-                // CORREÇÃO: Enviar como text/plain para evitar CORS Preflight que o Apps Script não suporta
+                // Previne CORS Preflight usando text/plain
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -341,13 +463,13 @@
             }
         };
 
+        // --- APP LOGIC ---
         const app = {
             data: { locais:[], tipos:[] },
             state: { page:1, total:1, user: null },
 
             init: async () => {
                 ui.loading(true, "Iniciando...");
-                // Configuração segura para evitar travamento se biblioteca não carregar
                 if(window.lucide) lucide.createIcons();
                 ui.updateDashboardLabels();
                 
@@ -359,6 +481,8 @@
                 
                 const inputWhats = document.getElementById('input-whatsapp');
                 if(inputWhats) inputWhats.addEventListener('input', e => e.target.value = utils.maskPhone(e.target.value));
+
+                document.getElementById('btn-confirm-yes').addEventListener('click', () => utils.closeConfirm(true));
 
                 const savedUser = localStorage.getItem('app_user');
                 if(savedUser) {
@@ -389,16 +513,18 @@
             },
 
             login: async (e) => {
-                e.preventDefault(); // Garante que não recarrega
+                if(e) e.preventDefault();
                 ui.loading(true, "Autenticando...");
-                const data = Object.fromEntries(new FormData(e.target));
+                const form = document.getElementById('form-login');
+                const data = Object.fromEntries(new FormData(form).entries());
+                
                 try {
                     const res = await api.req({op:'login', payload: data});
                     if(res.success) {
                         app.state.user = { name: res.name, token: res.token };
                         localStorage.setItem('app_user', JSON.stringify(app.state.user));
                         app.loadApp();
-                        e.target.reset();
+                        form.reset();
                     } else {
                         utils.showAlert("Erro", res.error);
                         ui.loading(false);
@@ -410,10 +536,10 @@
             },
 
             logout: () => {
-                if(confirm("Deseja realmente sair?")) {
+                utils.showConfirm("Sair", "Deseja realmente sair?", () => {
                     localStorage.removeItem('app_user');
                     location.reload();
-                }
+                });
             },
 
             loadApp: async () => {
@@ -457,9 +583,8 @@
             },
 
             handleSubmit: async (e) => {
-                if(e) e.preventDefault(); // Backup prevent
+                if(e) e.preventDefault();
                 ui.loading(true, "Salvando...");
-                // Pega o form correto, caso o evento venha do botão ou do form
                 const form = document.getElementById('form-cadastro');
                 const formData = new FormData(form);
                 const data = Object.fromEntries(formData.entries());
@@ -520,13 +645,24 @@
             },
             
             reqSettings: async (op, type, val) => {
-                if(op === 'del' && !confirm("Remover?")) return;
                 if(op === 'add') {
                     const el = document.getElementById(type === 'local' ? 'new-local' : 'new-tipo');
                     val = el.value.toUpperCase();
                     if(!val) return;
                     el.value = '';
                 }
+                
+                // Usar Modal de Confirmação para deletar
+                if(op === 'del') {
+                    utils.showConfirm("Excluir Item", `Remover "${val}"?`, async () => {
+                       await app.executeSettingsReq(op, type, val);
+                    });
+                } else {
+                    await app.executeSettingsReq(op, type, val);
+                }
+            },
+
+            executeSettingsReq: async(op, type, val) => {
                 ui.loading(true);
                 try {
                     const res = await api.req({op: op === 'add' ? 'settings_add' : 'settings_del', payload:{type, value:val}});
@@ -538,8 +674,9 @@
                              if (idx > -1) list.splice(idx, 1);
                         }
                         app.refreshSelects();
-                    }
-                } catch(e) { console.error(e); }
+                        utils.showAlert("Sucesso", op === 'add' ? "Item adicionado!" : "Item removido!");
+                    } else utils.showAlert("Erro", res.error || "Falha na operação");
+                } catch(e) { console.error(e); utils.showAlert("Erro", "Erro de conexão"); }
                 ui.loading(false);
             },
             
@@ -554,7 +691,7 @@
             }
         };
 
-        // Initialize
+        // Inicializa o app
         document.addEventListener('DOMContentLoaded', app.init);
     </script>
 </body>
