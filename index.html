@@ -95,7 +95,8 @@
                 <p class="text-blue-200" id="greeting-display">Bem-vindo ao sistema</p>
             </div>
 
-            <form id="form-login" class="space-y-4">
+            <!-- Formulário de Login com prevenção de reload -->
+            <form id="form-login" class="space-y-4" onsubmit="event.preventDefault(); app.login(event)">
                 <div class="bg-white/10 backdrop-blur-md rounded-xl p-1 border border-white/20">
                     <div class="flex items-center px-3 border-b border-white/10">
                         <i data-lucide="user" class="w-5 h-5 text-blue-300"></i>
@@ -131,7 +132,7 @@
     <!-- CONTENT -->
     <main class="flex-1 overflow-y-auto pb-20 relative bg-gray-100" id="main-content">
         
-        <!-- DASHBOARD -->
+        <!-- DASHBOARD / CADASTRO -->
         <div id="view-home" class="screen active p-4 space-y-6">
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
@@ -146,7 +147,8 @@
 
             <div class="bg-white rounded-xl shadow-sm p-5">
                 <h2 class="text-lg font-semibold mb-4 text-blue-700">Novo Agendamento</h2>
-                <form id="form-cadastro" class="space-y-4">
+                <!-- ADICIONADO: onsubmit direto para evitar reload -->
+                <form id="form-cadastro" class="space-y-4" onsubmit="event.preventDefault(); app.handleSubmit(event)">
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
                         <label class="block text-sm font-bold text-blue-800 mb-1 flex items-center gap-1"><i data-lucide="calendar" class="w-4 h-4"></i> Data do Abastecimento</label>
                         <input type="date" name="dataAgendada" required id="input-date" class="w-full p-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
@@ -260,7 +262,7 @@
     </nav>
 
     <script>
-        // *** SEU LINK ATUALIZADO ***
+        // ATUALIZE AQUI O LINK DA SUA API
         const API_URL = "https://script.google.com/macros/s/AKfycbzehxgBi_WiXXb5rRf-H8qfgh0vRl640-2BeTbzO5BWLoV4flMnEIqbOUHxQpVdTM3JRQ/exec";
         const MOCK_MODE = false;
 
@@ -273,7 +275,6 @@
                 return `${months[now.getMonth()]} / ${now.getFullYear()}`;
             },
             getCurrentYearLabel: () => `Ano Atual ${new Date().getFullYear()}`,
-            
             maskPhone: v => v.replace(/\D/g,"").replace(/^(\d{2})(\d)/g,"($1) $2").replace(/(\d)(\d{4})$/,"$1-$2"),
             showAlert: (t, m) => { document.getElementById('alert-title').innerText=t; document.getElementById('alert-message').innerText=m; document.getElementById('custom-alert').classList.remove('hidden'); },
             closeAlert: () => document.getElementById('custom-alert').classList.add('hidden')
@@ -325,6 +326,7 @@
         const api = {
             req: async (body) => {
                 if(MOCK_MODE) return {success:true, dashboard:{mes:1,ano:1}, data:[], totalPages:1};
+                // CORREÇÃO: Enviar como text/plain para evitar CORS Preflight que o Apps Script não suporta
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -345,12 +347,18 @@
 
             init: async () => {
                 ui.loading(true, "Iniciando...");
-                lucide.createIcons();
+                // Configuração segura para evitar travamento se biblioteca não carregar
+                if(window.lucide) lucide.createIcons();
                 ui.updateDashboardLabels();
                 
                 const today = utils.getToday();
-                ['input-date','rel-inicio','rel-fim','filter-date'].forEach(id => document.getElementById(id).value = today);
-                document.getElementById('input-whatsapp').addEventListener('input', e => e.target.value = utils.maskPhone(e.target.value));
+                ['input-date','rel-inicio','rel-fim','filter-date'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) el.value = today;
+                });
+                
+                const inputWhats = document.getElementById('input-whatsapp');
+                if(inputWhats) inputWhats.addEventListener('input', e => e.target.value = utils.maskPhone(e.target.value));
 
                 const savedUser = localStorage.getItem('app_user');
                 if(savedUser) {
@@ -381,7 +389,7 @@
             },
 
             login: async (e) => {
-                e.preventDefault();
+                e.preventDefault(); // Garante que não recarrega
                 ui.loading(true, "Autenticando...");
                 const data = Object.fromEntries(new FormData(e.target));
                 try {
@@ -445,20 +453,23 @@
                 };
                 render('list-settings-local', app.data.locais, 'local');
                 render('list-settings-tipo', app.data.tipos, 'tipo');
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
 
             handleSubmit: async (e) => {
-                e.preventDefault();
+                if(e) e.preventDefault(); // Backup prevent
                 ui.loading(true, "Salvando...");
-                const data = Object.fromEntries(new FormData(e.target));
+                // Pega o form correto, caso o evento venha do botão ou do form
+                const form = document.getElementById('form-cadastro');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
                 const dateBackup = data.dataAgendada;
                 
                 try {
                     const res = await api.req({op:'save', payload: data});
                     if(res.success) {
                         utils.showAlert("Sucesso", "Registro salvo!");
-                        e.target.reset();
+                        form.reset();
                         document.getElementById('input-date').value = dateBackup;
                         app.updateDashboard(res.dashboard);
                     } else utils.showAlert("Erro", res.error);
@@ -492,18 +503,19 @@
                 if(!s || !e) return utils.showAlert("Ops", "Selecione as datas");
 
                 ui.loading(true, "Gerando...");
-                const res = await api.get({op:'report', start:s, end:e, com:c});
-                
-                document.getElementById('report-count').innerText = res.length;
-                document.getElementById('report-timestamp').innerText = "Gerado em: " + new Date().toLocaleString();
-                document.getElementById('print-subtitle').innerText = `Período: ${utils.formatDateBR(s)} a ${utils.formatDateBR(e)}`;
-                document.getElementById('report-results').classList.remove('hidden');
+                try {
+                    const res = await api.get({op:'report', start:s, end:e, com:c});
+                    document.getElementById('report-count').innerText = res.length;
+                    document.getElementById('report-timestamp').innerText = "Gerado em: " + new Date().toLocaleString();
+                    document.getElementById('print-subtitle').innerText = `Período: ${utils.formatDateBR(s)} a ${utils.formatDateBR(e)}`;
+                    document.getElementById('report-results').classList.remove('hidden');
 
-                const tb = document.getElementById('report-table-body'); tb.innerHTML = '';
-                if(!res.length) tb.innerHTML = '<tr><td colspan="6" class="text-center p-4">Vazio</td></tr>';
-                res.forEach(i => {
-                    tb.innerHTML += `<tr class="border-b"><td class="p-2">${utils.formatDateBR(i.data)}</td><td class="p-2">${i.nome}</td><td class="p-2 text-xs">${i.endereco}</td><td class="p-2">${i.comunidade}</td><td class="p-2">${i.tipo}</td><td class="border-l col-assinatura"></td></tr>`;
-                });
+                    const tb = document.getElementById('report-table-body'); tb.innerHTML = '';
+                    if(!res.length) tb.innerHTML = '<tr><td colspan="6" class="text-center p-4">Vazio</td></tr>';
+                    res.forEach(i => {
+                        tb.innerHTML += `<tr class="border-b"><td class="p-2">${utils.formatDateBR(i.data)}</td><td class="p-2">${i.nome}</td><td class="p-2 text-xs">${i.endereco}</td><td class="p-2">${i.comunidade}</td><td class="p-2">${i.tipo}</td><td class="border-l col-assinatura"></td></tr>`;
+                    });
+                } catch(e) { console.error(e); }
                 ui.loading(false);
             },
             
@@ -516,16 +528,18 @@
                     el.value = '';
                 }
                 ui.loading(true);
-                const res = await api.req({op: op === 'add' ? 'settings_add' : 'settings_del', payload:{type, value:val}});
-                if(res.success) {
-                    const list = type === 'local' ? app.data.locais : app.data.tipos;
-                    if(op === 'add') list.push(val);
-                    else {
-                         const idx = list.indexOf(val);
-                         if (idx > -1) list.splice(idx, 1);
+                try {
+                    const res = await api.req({op: op === 'add' ? 'settings_add' : 'settings_del', payload:{type, value:val}});
+                    if(res.success) {
+                        const list = type === 'local' ? app.data.locais : app.data.tipos;
+                        if(op === 'add') list.push(val);
+                        else {
+                             const idx = list.indexOf(val);
+                             if (idx > -1) list.splice(idx, 1);
+                        }
+                        app.refreshSelects();
                     }
-                    app.refreshSelects();
-                }
+                } catch(e) { console.error(e); }
                 ui.loading(false);
             },
             
@@ -540,7 +554,7 @@
             }
         };
 
-        document.getElementById('form-login').addEventListener('submit', app.login);
+        // Initialize
         document.addEventListener('DOMContentLoaded', app.init);
     </script>
 </body>
