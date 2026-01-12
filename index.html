@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Controle de Abastecimento</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- CSS / Styles -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .screen.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Animação para destacar atualização dos contadores */
+        .pulse-update {
+            animation: pulse-green 1s ease-in-out;
+        }
+        @keyframes pulse-green {
+            0% { color: #1f2937; transform: scale(1); }
+            50% { color: #16a34a; transform: scale(1.2); }
+            100% { color: #1f2937; transform: scale(1); }
+        }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .bottom-nav {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md z-10">
+        <div class="flex justify-between items-center">
+            <h1 class="text-lg font-bold flex items-center gap-2">
+                <i data-lucide="droplet" class="w-6 h-6"></i>
+                Gestão de Água
+            </h1>
+            <div id="loading-indicator" class="hidden">
+                <div class="loader border-white border-t-blue-800"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto pb-20 relative">
+        
+        <!-- HOME / CADASTRO -->
+        <div id="view-home" class="screen active p-4 space-y-6">
+            <!-- Dashboard -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 transition-all">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Mês Atual</p>
+                    <p class="text-2xl font-bold text-gray-800 dashboard-counter" id="dash-mes">-</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500 transition-all">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Ano Atual</p>
+                    <p class="text-2xl font-bold text-gray-800 dashboard-counter" id="dash-ano">-</p>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <div class="bg-white rounded-xl shadow-sm p-5">
+                <h2 class="text-lg font-semibold mb-4 text-blue-700">Novo Abastecimento</h2>
+                <form id="form-cadastro" class="space-y-4">
+                    
+                    <!-- DATA NO TOPO (Como solicitado) -->
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <label class="block text-sm font-bold text-blue-800 mb-1 flex items-center gap-1">
+                            <i data-lucide="calendar" class="w-4 h-4"></i> Data do Registro
+                        </label>
+                        <input type="date" name="dataAgendada" required id="input-date" class="w-full p-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-gray-700">
+                        <p class="text-[10px] text-blue-600 mt-1">Defina a data para os cadastros abaixo.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                        <input type="text" name="nome" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Ex: João da Silva">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Comunidade</label>
+                        <select name="comunidade" id="select-comunidade" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                            <input type="tel" name="whatsapp" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="(00) 00000-0000">
+                        </div>
+                        <!-- Campo Data removido daqui e movido para o topo -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
+                            <select name="periodo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <option value="Matutino">Matutino</option>
+                                <option value="Vespertino">Vespertino</option>
+                                <option value="Noturno">Noturno</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Endereço / Referência</label>
+                        <input type="text" name="endereco" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Próximo a...">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Abastecimento</label>
+                        <select name="tipo" id="select-tipo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-center items-center gap-2 mt-4">
+                        <i data-lucide="save" class="w-5 h-5"></i> Salvar Registro
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- LISTAGEM -->
+        <div id="view-list" class="screen p-4 space-y-4">
+            <h2 class="text-xl font-bold text-gray-800">Histórico Recente</h2>
+            <button onclick="app.loadHistory()" class="w-full bg-white border border-gray-200 text-blue-600 font-semibold py-2 rounded-lg flex justify-center items-center gap-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar Lista
+            </button>
+            <div id="list-container" class="space-y-3 pb-4">
+                <div class="text-center text-gray-400 mt-10">Carregando dados...</div>
+            </div>
+        </div>
+
+        <!-- RELATÓRIOS -->
+        <div id="view-reports" class="screen p-4 space-y-6">
+            <h2 class="text-xl font-bold text-gray-800">Gerar Relatórios</h2>
+            <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold uppercase">De</label>
+                        <input type="date" id="rel-inicio" class="w-full p-2 bg-gray-50 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold uppercase">Até</label>
+                        <input type="date" id="rel-fim" class="w-full p-2 bg-gray-50 border rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 font-bold uppercase">Comunidade</label>
+                    <select id="rel-comunidade" class="w-full p-2 bg-gray-50 border rounded-lg">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <button onclick="app.generateReport()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-lg hover:bg-gray-900 flex justify-center items-center gap-2">
+                    <i data-lucide="file-bar-chart" class="w-5 h-5"></i> Gerar Relatório
+                </button>
+            </div>
+            <div id="report-results" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
+                <div class="bg-gray-100 p-3 border-b border-gray-200 flex justify-between">
+                    <span class="font-bold text-sm">Resultados</span>
+                    <span id="report-count" class="text-xs bg-gray-300 px-2 py-1 rounded-full">0</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr><th class="px-4 py-3">Data</th><th class="px-4 py-3">Comunidade</th><th class="px-4 py-3">Tipo</th></tr>
+                        </thead>
+                        <tbody id="report-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Navigation -->
+    <nav class="bottom-nav bg-white border-t border-gray-200 fixed bottom-0 w-full z-20">
+        <div class="flex justify-around items-center h-16">
+            <button onclick="ui.navigate('home')" class="nav-btn active flex-1 flex flex-col items-center justify-center text-blue-600">
+                <i data-lucide="plus-circle" class="w-6 h-6"></i> <span class="text-[10px] font-medium mt-1">Novo</span>
+            </button>
+            <button onclick="ui.navigate('list')" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400 hover:text-blue-500">
+                <i data-lucide="list" class="w-6 h-6"></i> <span class="text-[10px] font-medium mt-1">Registros</span>
+            </button>
+            <button onclick="ui.navigate('reports')" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400 hover:text-blue-500">
+                <i data-lucide="bar-chart-2" class="w-6 h-6"></i> <span class="text-[10px] font-medium mt-1">Relatórios</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- JS: UTILS -->
+    <script>
+        const utils = {
+            formatDateBR: (dateString) => {
+                if(!dateString) return '';
+                const parts = dateString.split('-'); 
+                if(parts.length !== 3) return dateString;
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            },
+            getTodayInputFormat: () => new Date().toISOString().split('T')[0],
+            showToast: (msg) => alert(msg) 
+        };
+    </script>
+
+    <!-- JS: API -->
+    <script>
+        // *** ATUALIZE AQUI O LINK DA SUA API DO GOOGLE APPS SCRIPT ***
+        const API_URL = "https://script.google.com/macros/s/AKfycbzehxgBi_WiXXb5rRf-H8qfgh0vRl640-2BeTbzO5BWLoV4flMnEIqbOUHxQpVdTM3JRQ/exec";
+        
+        // MODO MOCK: false para usar a API real
+        const MOCK_MODE = false; 
+
+        const api = {
+            getInitialData: async () => {
+                if (MOCK_MODE) return api.mockData;
+                
+                const response = await fetch(API_URL);
+                return await response.json();
+            },
+
+            saveSupply: async (formData) => {
+                if (MOCK_MODE) return {success: true, dashboard: {mes: 99, ano: 999}};
+
+                // Enviamos como POST simples (string no body) para facilitar o parsing no Apps Script
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        op: "save",
+                        payload: formData
+                    })
+                });
+                return await response.json();
+            },
+
+            getHistory: async () => {
+                if (MOCK_MODE) return [];
+                
+                const response = await fetch(`${API_URL}?op=history`);
+                return await response.json();
+            },
+            
+            getReport: async (start, end, com) => {
+                if (MOCK_MODE) return [];
+                
+                const url = `${API_URL}?op=report&start=${start}&end=${end}&com=${encodeURIComponent(com)}`;
+                const response = await fetch(url);
+                return await response.json();
+            },
+
+            mockData: {
+                locais: ["MOCK LOCAL"],
+                abastecimentos: ["1000L"],
+                dashboard: { mes: 0, ano: 0 }
+            }
+        };
+    </script>
+
+    <!-- JS: UI -->
+    <script>
+        const ui = {
+            loading: (isLoading) => {
+                const el = document.getElementById('loading-indicator');
+                if(isLoading) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            },
+            navigate: (screenId) => {
+                document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.nav-btn').forEach(el => {
+                    el.classList.remove('text-blue-600');
+                    el.classList.add('text-gray-400');
+                });
+                document.getElementById(`view-${screenId}`).classList.add('active');
+                
+                const btnIndex = screenId === 'home' ? 0 : screenId === 'list' ? 1 : 2;
+                const activeBtn = document.querySelectorAll('.nav-btn')[btnIndex];
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('text-blue-600');
+
+                if(screenId === 'list') app.loadHistory();
+            },
+            populateSelect: (elementId, items) => {
+                const select = document.getElementById(elementId);
+                select.innerHTML = '<option value="">Selecione...</option>';
+                items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.textContent = item;
+                    select.appendChild(option);
+                });
+            },
+            updateDashboard: (data) => {
+                const mesEl = document.getElementById('dash-mes');
+                const anoEl = document.getElementById('dash-ano');
+                
+                // Atualiza valores
+                mesEl.textContent = data.mes;
+                anoEl.textContent = data.ano;
+
+                // Adiciona efeito visual de pulso
+                mesEl.classList.remove('pulse-update');
+                anoEl.classList.remove('pulse-update');
+                // Força reflow
+                void mesEl.offsetWidth; 
+                
+                mesEl.classList.add('pulse-update');
+                anoEl.classList.add('pulse-update');
+            },
+            renderList: (data) => {
+                const container = document.getElementById('list-container');
+                container.innerHTML = '';
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8">Nenhum registro encontrado.</div>';
+                    return;
+                }
+                data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-3';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-gray-800">${item.nome}</h3>
+                                <p class="text-sm text-gray-500 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${item.comunidade}</p>
+                            </div>
+                            <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded">${item.tipo}</span>
+                        </div>
+                        <div class="mt-2 flex justify-between items-center text-sm text-gray-600">
+                            <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${utils.formatDateBR(item.dataAgendada)}</span>
+                            <span>${item.periodo}</span>
+                        </div>`;
+                    container.appendChild(card);
+                });
+                lucide.createIcons();
+            },
+            renderReportTable: (data) => {
+                const tbody = document.getElementById('report-table-body');
+                document.getElementById('report-count').textContent = data.length;
+                document.getElementById('report-results').classList.remove('hidden');
+                tbody.innerHTML = '';
+                if(data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">Sem dados</td></tr>';
+                    return;
+                }
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = "bg-white border-b hover:bg-gray-50";
+                    tr.innerHTML = `<td class="px-4 py-3 font-medium text-gray-900">${utils.formatDateBR(item.data)}</td><td class="px-4 py-3 text-gray-500">${item.comunidade}</td><td class="px-4 py-3 text-gray-500">${item.tipo}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+        };
+    </script>
+
+    <!-- JS: APP MAIN -->
+    <script>
+        const app = {
+            init: async () => {
+                ui.loading(true);
+                lucide.createIcons();
+                document.getElementById('input-date').value = utils.getTodayInputFormat();
+                document.getElementById('rel-inicio').value = utils.getTodayInputFormat();
+                document.getElementById('rel-fim').value = utils.getTodayInputFormat();
+
+                try {
+                    const data = await api.getInitialData();
+                    if(data.error) throw data.error;
+
+                    ui.populateSelect('select-comunidade', data.locais);
+                    
+                    const selectRelCom = document.getElementById('rel-comunidade');
+                    data.locais.forEach(l => {
+                        const opt = document.createElement('option');
+                        opt.value = l;
+                        opt.textContent = l;
+                        selectRelCom.appendChild(opt);
+                    });
+
+                    ui.populateSelect('select-tipo', data.abastecimentos);
+                    ui.updateDashboard(data.dashboard);
+                } catch (e) {
+                    console.error(e);
+                    utils.showToast("Erro ao conectar API: " + e);
+                } finally {
+                    ui.loading(false);
+                }
+
+                document.getElementById('form-cadastro').addEventListener('submit', app.handleSubmit);
+            },
+            handleSubmit: async (e) => {
+                e.preventDefault();
+                ui.loading(true);
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                
+                // IMPORTANTE: Captura a data selecionada antes de limpar o formulário
+                const selectedDate = data.dataAgendada;
+
+                try {
+                    const response = await api.saveSupply(data);
+                    if (response.success) {
+                        utils.showToast("Agendamento realizado!");
+                        
+                        // Limpa o formulário
+                        e.target.reset();
+                        
+                        // RESTAURA A DATA SELECIONADA (Sticky Date)
+                        // Assim o usuário não precisa digitar a data de novo
+                        document.getElementById('input-date').value = selectedDate;
+                        
+                        // Atualiza os contadores com os dados que voltaram da API
+                        ui.updateDashboard(response.dashboard);
+                    } else {
+                        utils.showToast("Erro: " + (response.error || "Desconhecido"));
+                    }
+                } catch (err) {
+                    utils.showToast("Erro rede: " + err);
+                } finally {
+                    ui.loading(false);
+                }
+            },
+            loadHistory: async () => {
+                ui.loading(true);
+                try {
+                    const data = await api.getHistory();
+                    ui.renderList(data);
+                } catch (e) { console.error(e); } finally { ui.loading(false); }
+            },
+            generateReport: async () => {
+                const start = document.getElementById('rel-inicio').value;
+                const end = document.getElementById('rel-fim').value;
+                const com = document.getElementById('rel-comunidade').value;
+                if(!start || !end) { utils.showToast("Selecione as datas."); return; }
+                ui.loading(true);
+                try {
+                    const data = await api.getReport(start, end, com);
+                    ui.renderReportTable(data);
+                } catch(e) { console.error(e); } finally { ui.loading(false); }
+            }
+        };
+        document.addEventListener('DOMContentLoaded', app.init);
+    </script>
+</body>
+</html>
