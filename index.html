@@ -9,699 +9,528 @@
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- CSS / Styles -->
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .screen {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .screen.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
+        .screen { display: none; animation: fadeIn 0.4s ease-in-out; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .pulse-update { animation: pulse-green 1s ease-in-out; }
-        @keyframes pulse-green {
-            0% { color: #1f2937; transform: scale(1); }
-            50% { color: #16a34a; transform: scale(1.2); }
-            100% { color: #1f2937; transform: scale(1); }
-        }
+        @keyframes pulse-green { 0% { transform: scale(1); color: #1f2937; } 50% { transform: scale(1.1); color: #16a34a; } 100% { transform: scale(1); color: #1f2937; } }
         .bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* LOGIN STYLE */
+        #view-login {
+            background-color: #1e3a8a; /* Fallback color */
+            background-size: cover;
+            background-position: center;
+        }
+        .login-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.2) 100%);
+        }
 
-        /* LOADING OVERLAY */
-        #loading-overlay {
-            background-color: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(2px);
-        }
-        .loader-spinner {
-            border: 4px solid #e5e7eb;
-            border-top: 4px solid #2563eb;
-            border-radius: 50%;
-            width: 40px; height: 40px;
-            animation: spin 1s linear infinite;
-        }
+        #loading-overlay { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px); }
+        .loader-spinner { border: 4px solid #e5e7eb; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* ESTILOS DE IMPRESSÃO (PDF) */
+        /* PRINT STYLES */
         @media print {
-            @page { size: landscape; margin: 10mm; } /* FORÇA HORIZONTAL */
+            @page { size: landscape; margin: 10mm; }
             body { background-color: white; font-family: serif; }
-            .no-print, .bottom-nav, header, form, .screen:not(#view-reports), .footer-credit, #loading-overlay, #custom-alert { display: none !important; }
-            
-            #view-reports { display: block !important; width: 100% !important; padding: 0 !important; }
-            #report-results { box-shadow: none; border: none; }
-            
+            .no-print, .bottom-nav, header, form, #view-login, #custom-alert, #loading-overlay, .footer-credit { display: none !important; }
+            .screen { display: none; }
+            #view-reports { display: block !important; padding: 0 !important; }
+            #report-results { display: block !important; box-shadow: none; border: none; }
             #print-header { display: block !important; margin-bottom: 10px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            #print-footer { display: flex !important; margin-top: 30px; }
-            
+            #print-footer { display: flex !important; margin-top: 30px; justify-content: space-between; align-items: flex-end; }
             table { font-size: 11px; width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: middle; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: left; }
             th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-transform: uppercase; }
-            
-            /* Coluna assinatura maior na impressão */
-            .col-assinatura { width: 150px; height: 40px; }
+            .col-assinatura { width: 180px; height: 35px; }
         }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- OVERLAY DE CARREGAMENTO -->
-    <div id="loading-overlay" class="fixed inset-0 z-50 hidden flex flex-col items-center justify-center">
+    <!-- OVERLAYS -->
+    <div id="loading-overlay" class="fixed inset-0 z-[60] hidden flex flex-col items-center justify-center">
         <div class="loader-spinner mb-4"></div>
         <p class="text-blue-600 font-bold text-lg animate-pulse">Aguarde...</p>
-        <p class="text-gray-500 text-sm mt-1" id="loading-text">Processando sua solicitação</p>
+        <p class="text-gray-500 text-sm mt-1" id="loading-text">Carregando...</p>
     </div>
 
-    <!-- MODAL DE ALERTA PERSONALIZADO -->
-    <div id="custom-alert" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-50 px-4 backdrop-blur-sm">
+    <div id="custom-alert" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black bg-opacity-50 px-4 backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-100">
-            <div class="text-center">
-                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
-                    <i data-lucide="info" class="h-6 w-6 text-blue-600"></i>
-                </div>
-                <h3 class="text-lg leading-6 font-medium text-gray-900" id="alert-title">Atenção</h3>
-                <div class="mt-2">
-                    <p class="text-sm text-gray-500" id="alert-message">Mensagem do sistema.</p>
-                </div>
-            </div>
-            <div class="mt-5 sm:mt-6">
-                <button onclick="utils.closeAlert()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
-                    OK
-                </button>
-            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2" id="alert-title">Atenção</h3>
+            <p class="text-sm text-gray-500 mb-4" id="alert-message">Mensagem.</p>
+            <button onclick="utils.closeAlert()" class="w-full bg-blue-600 text-white rounded-lg py-2 font-medium">OK</button>
         </div>
     </div>
 
-    <!-- Header -->
-    <header class="bg-blue-600 text-white p-4 shadow-md z-10">
+    <!-- TELA DE LOGIN (NOVA) -->
+    <div id="view-login" class="fixed inset-0 z-50 flex flex-col justify-end hidden">
+        <div class="login-overlay absolute inset-0"></div>
+        <div class="relative z-10 p-8 pb-12 w-full max-w-md mx-auto">
+            <div class="mb-8 text-center">
+                <!-- Logo Dinâmica -->
+                <img id="login-logo" src="" class="h-24 w-auto mx-auto mb-4 hidden object-contain filter drop-shadow-lg" alt="Logo">
+                <!-- Placeholder caso não tenha logo -->
+                <div id="login-logo-placeholder" class="h-20 w-20 bg-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg shadow-blue-900/50">
+                    <i data-lucide="droplet" class="w-10 h-10 text-white"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-1" id="app-name-display">Gestão de Água</h1>
+                <p class="text-blue-200" id="greeting-display">Bem-vindo ao sistema</p>
+            </div>
+
+            <form id="form-login" class="space-y-4">
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-1 border border-white/20">
+                    <div class="flex items-center px-3 border-b border-white/10">
+                        <i data-lucide="user" class="w-5 h-5 text-blue-300"></i>
+                        <input type="text" name="user" required placeholder="Usuário" class="w-full bg-transparent p-3 text-white placeholder-blue-200/70 outline-none">
+                    </div>
+                    <div class="flex items-center px-3">
+                        <i data-lucide="lock" class="w-5 h-5 text-blue-300"></i>
+                        <input type="password" name="pass" required placeholder="Senha" class="w-full bg-transparent p-3 text-white placeholder-blue-200/70 outline-none">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/30 transition-transform active:scale-95">
+                    Entrar no Sistema
+                </button>
+            </form>
+            <p class="text-center text-gray-400 text-xs mt-6">Desenvolvido por Thiego Pereira</p>
+        </div>
+    </div>
+
+    <!-- APP HEADER -->
+    <header class="bg-blue-600 text-white p-4 shadow-md z-10 no-print" id="app-header">
         <div class="flex justify-between items-center">
             <h1 class="text-lg font-bold flex items-center gap-2">
                 <i data-lucide="droplet" class="w-6 h-6"></i>
-                Gestão de Água
+                <span id="header-title">Gestão</span>
             </h1>
+            <div class="flex items-center gap-3">
+                <span class="text-xs bg-blue-700 px-2 py-1 rounded font-medium truncate max-w-[100px]" id="user-display">Usuário</span>
+                <button onclick="app.logout()" class="text-blue-200 hover:text-white"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+            </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto pb-20 relative bg-gray-100">
+    <!-- CONTENT -->
+    <main class="flex-1 overflow-y-auto pb-20 relative bg-gray-100" id="main-content">
         
-        <!-- TELA 1: HOME / CADASTRO -->
+        <!-- DASHBOARD -->
         <div id="view-home" class="screen active p-4 space-y-6">
-            <!-- Dashboard -->
             <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 transition-all">
-                    <p class="text-xs text-gray-500 uppercase font-semibold">Mês Atual</p>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+                    <p class="text-xs text-gray-500 font-bold uppercase" id="label-mes">Mês Atual</p>
                     <p class="text-2xl font-bold text-gray-800 dashboard-counter" id="dash-mes">-</p>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500 transition-all">
-                    <p class="text-xs text-gray-500 uppercase font-semibold">Ano Atual</p>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
+                    <p class="text-xs text-gray-500 font-bold uppercase" id="label-ano">Ano Atual</p>
                     <p class="text-2xl font-bold text-gray-800 dashboard-counter" id="dash-ano">-</p>
                 </div>
             </div>
 
-            <!-- Form -->
             <div class="bg-white rounded-xl shadow-sm p-5">
                 <h2 class="text-lg font-semibold mb-4 text-blue-700">Novo Agendamento</h2>
                 <form id="form-cadastro" class="space-y-4">
-                    
-                    <!-- Sticky Date -->
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                        <label class="block text-sm font-bold text-blue-800 mb-1 flex items-center gap-1">
-                            <i data-lucide="calendar" class="w-4 h-4"></i> Data do Abastecimento
-                        </label>
-                        <input type="date" name="dataAgendada" required id="input-date" class="w-full p-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-gray-700">
+                        <label class="block text-sm font-bold text-blue-800 mb-1 flex items-center gap-1"><i data-lucide="calendar" class="w-4 h-4"></i> Data do Abastecimento</label>
+                        <input type="date" name="dataAgendada" required id="input-date" class="w-full p-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
                     </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-                        <input type="text" name="nome" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: João da Silva">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Comunidade</label>
-                        <select name="comunidade" id="select-comunidade" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none select-locais-dinamico">
-                            <option value="">Carregando...</option>
-                        </select>
-                    </div>
-
+                    <div><input type="text" name="nome" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nome Completo"></div>
+                    <div><select name="comunidade" id="select-comunidade" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none select-locais-dinamico"><option value="">Carregando...</option></select></div>
                     <div class="grid grid-cols-2 gap-3">
+                        <div><input type="tel" name="whatsapp" id="input-whatsapp" maxlength="15" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="WhatsApp"></div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
-                            <input type="tel" name="whatsapp" id="input-whatsapp" maxlength="15" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="(84) 90000-0000">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
-                            <select name="periodo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            <select name="periodo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none">
                                 <option value="Matutino">Matutino</option>
                                 <option value="Vespertino">Vespertino</option>
                                 <option value="Noturno">Noturno</option>
                             </select>
                         </div>
                     </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Endereço / Referência</label>
-                        <input type="text" name="endereco" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Próximo a...">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Abastecimento</label>
-                        <select name="tipo" id="select-tipo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none select-tipos-dinamico">
-                            <option value="">Carregando...</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-center items-center gap-2 mt-4">
-                        <i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Agendamento
-                    </button>
+                    <div><input type="text" name="endereco" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none" placeholder="Endereço / Referência"></div>
+                    <div><select name="tipo" id="select-tipo" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none select-tipos-dinamico"><option value="">Carregando...</option></select></div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-center items-center gap-2 mt-4"><i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Agendamento</button>
                 </form>
             </div>
         </div>
 
-        <!-- TELA 2: LISTAGEM / HISTÓRICO -->
+        <!-- LISTA -->
         <div id="view-list" class="screen p-4 space-y-4">
-            <h2 class="text-xl font-bold text-gray-800">Histórico de Agendamentos</h2>
-            
-            <!-- Filtros -->
+            <h2 class="text-xl font-bold text-gray-800">Histórico</h2>
             <div class="bg-white p-3 rounded-lg shadow-sm space-y-3">
-                <div class="text-xs font-bold text-gray-500 uppercase">Filtrar por:</div>
                 <div class="grid grid-cols-2 gap-2">
                     <input type="date" id="filter-date" class="w-full p-2 border rounded text-sm bg-gray-50">
-                    <select id="filter-com" class="w-full p-2 border rounded text-sm bg-gray-50 select-locais-dinamico">
-                        <option value="">Todas Comunidades</option>
-                    </select>
+                    <select id="filter-com" class="w-full p-2 border rounded text-sm bg-gray-50 select-locais-dinamico"><option value="">Todas</option></select>
                 </div>
-                <button onclick="app.loadHistory(1)" class="w-full bg-blue-100 text-blue-700 font-bold py-2 rounded text-sm">
-                    Aplicar Filtros
-                </button>
+                <button onclick="app.loadHistory(1)" class="w-full bg-blue-100 text-blue-700 font-bold py-2 rounded text-sm">Filtrar</button>
             </div>
-
-            <!-- Lista -->
-            <div id="list-container" class="space-y-3 pb-2 min-h-[200px]">
-                <div class="text-center text-gray-400 mt-10">Carregando dados...</div>
-            </div>
-
-            <!-- Paginação -->
+            <div id="list-container" class="space-y-3 pb-2 min-h-[100px]"><div class="text-center text-gray-400 mt-10">...</div></div>
             <div id="pagination-controls" class="flex justify-between items-center pt-2 hidden">
-                <button onclick="app.changePage(-1)" class="bg-white border px-4 py-2 rounded text-sm font-medium shadow-sm disabled:opacity-50">Anterior</button>
-                <span id="page-info" class="text-xs text-gray-500 font-bold">Pág 1</span>
-                <button onclick="app.changePage(1)" class="bg-white border px-4 py-2 rounded text-sm font-medium shadow-sm disabled:opacity-50">Próxima</button>
+                <button onclick="app.changePage(-1)" class="bg-white border px-4 py-2 rounded text-sm font-medium">Anterior</button>
+                <span id="page-info" class="text-xs text-gray-500 font-bold"></span>
+                <button onclick="app.changePage(1)" class="bg-white border px-4 py-2 rounded text-sm font-medium">Próxima</button>
             </div>
         </div>
 
-        <!-- TELA 3: RELATÓRIOS -->
+        <!-- RELATÓRIOS -->
         <div id="view-reports" class="screen p-4 space-y-6">
-            <!-- Cabeçalho de Impressão (Só aparece no PDF) -->
             <div id="print-header" class="hidden">
-                <h1 class="text-2xl font-bold uppercase">Relatório de Rota de Abastecimento</h1>
-                <p id="print-subtitle" class="text-sm text-gray-600">Gerado pelo sistema.</p>
+                <h1 class="text-2xl font-bold uppercase">Relatório de Rota</h1>
+                <p id="print-subtitle" class="text-sm text-gray-600"></p>
             </div>
-
             <div class="no-print">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Gerar Relatórios</h2>
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Relatórios</h2>
                 <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-xs text-gray-500 font-bold uppercase">De</label>
-                            <input type="date" id="rel-inicio" class="w-full p-2 bg-gray-50 border rounded-lg">
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500 font-bold uppercase">Até</label>
-                            <input type="date" id="rel-fim" class="w-full p-2 bg-gray-50 border rounded-lg">
-                        </div>
+                        <div><label class="text-xs text-gray-500 font-bold">DE</label><input type="date" id="rel-inicio" class="w-full p-2 border rounded-lg"></div>
+                        <div><label class="text-xs text-gray-500 font-bold">ATÉ</label><input type="date" id="rel-fim" class="w-full p-2 border rounded-lg"></div>
                     </div>
-                    <div>
-                        <label class="text-xs text-gray-500 font-bold uppercase">Comunidade</label>
-                        <select id="rel-comunidade" class="w-full p-2 bg-gray-50 border rounded-lg select-locais-dinamico">
-                            <option value="">Todas</option>
-                        </select>
-                    </div>
-                    <button onclick="app.generateReport()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-lg hover:bg-gray-900 flex justify-center items-center gap-2">
-                        <i data-lucide="file-bar-chart" class="w-5 h-5"></i>
-                        Gerar Relatório
-                    </button>
+                    <div><label class="text-xs text-gray-500 font-bold">LOCAL</label><select id="rel-comunidade" class="w-full p-2 border rounded-lg select-locais-dinamico"><option value="">Todas</option></select></div>
+                    <button onclick="app.generateReport()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-lg flex justify-center items-center gap-2"><i data-lucide="file-bar-chart" class="w-5 h-5"></i> Gerar</button>
                 </div>
             </div>
-
             <div id="report-results" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
-                <div class="bg-gray-100 p-3 border-b border-gray-200 flex justify-between items-center no-print">
-                    <span class="font-bold text-sm">Resultados (<span id="report-count">0</span>)</span>
-                    <button onclick="window.print()" class="bg-blue-600 text-white text-xs px-3 py-2 rounded flex items-center gap-1 hover:bg-blue-700">
-                        <i data-lucide="printer" class="w-3 h-3"></i> Imprimir Rota (PDF)
-                    </button>
+                <div class="bg-gray-100 p-3 border-b flex justify-between items-center no-print">
+                    <span class="font-bold text-sm">Total: <span id="report-count">0</span></span>
+                    <button onclick="window.print()" class="bg-blue-600 text-white text-xs px-3 py-2 rounded flex gap-1"><i data-lucide="printer" class="w-3 h-3"></i> Imprimir</button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3">DATA DO ABASTECIMENTO</th>
-                                <th class="px-4 py-3">NOME</th>
-                                <th class="px-4 py-3">ENDEREÇO</th>
-                                <th class="px-4 py-3">LOCAL</th>
-                                <th class="px-4 py-3">TIPO</th>
-                                <th class="px-4 py-3 col-assinatura">ASSINATURA (RECEBEDOR)</th>
+                                <th class="px-4 py-3">DATA</th><th class="px-4 py-3">NOME</th><th class="px-4 py-3">ENDEREÇO</th>
+                                <th class="px-4 py-3">LOCAL</th><th class="px-4 py-3">TIPO</th><th class="px-4 py-3 col-assinatura">ASSINATURA</th>
                             </tr>
                         </thead>
                         <tbody id="report-table-body"></tbody>
                     </table>
                 </div>
-
-                <!-- Rodapé de Impressão -->
                 <div id="print-footer" class="hidden justify-between items-end mt-10 pt-10 px-4 pb-4">
-                    <div class="text-xs text-gray-500" id="report-timestamp">
-                        <!-- Data e Hora gerada via JS -->
-                    </div>
-                    <div class="text-center">
-                        <div class="border-t border-black w-64 pt-2"></div>
-                        <p class="text-sm font-bold uppercase">Responsável pelo Abastecimento</p>
-                    </div>
+                    <div class="text-xs text-gray-500" id="report-timestamp"></div>
+                    <div class="text-center"><div class="border-t border-black w-64 pt-2"></div><p class="text-sm font-bold uppercase">Responsável</p></div>
                 </div>
             </div>
         </div>
 
-        <!-- TELA 4: CONFIGURAÇÕES -->
+        <!-- CONFIG -->
         <div id="view-settings" class="screen p-4 space-y-6">
             <h2 class="text-xl font-bold text-gray-800">Configurações</h2>
-            
-            <!-- Controle de Locais -->
             <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
                 <h3 class="font-bold text-blue-700 flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4"></i> Comunidades</h3>
-                <div class="flex gap-2">
-                    <input type="text" id="new-local" class="flex-1 p-2 border rounded-lg text-sm" placeholder="Nova comunidade...">
-                    <button onclick="app.addSetting('local')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus" class="w-5 h-5"></i></button>
-                </div>
-                <div id="list-settings-local" class="max-h-40 overflow-y-auto space-y-2 border-t pt-2"></div>
+                <div class="flex gap-2"><input type="text" id="new-local" class="flex-1 p-2 border rounded-lg text-sm"><button onclick="app.addSetting('local')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button></div>
+                <div id="list-settings-local" class="max-h-40 overflow-y-auto border-t pt-2 space-y-2"></div>
             </div>
-
-            <!-- Controle de Tipos -->
             <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
-                <h3 class="font-bold text-blue-700 flex items-center gap-2"><i data-lucide="droplet" class="w-4 h-4"></i> Tipos de Abastecimento</h3>
-                <div class="flex gap-2">
-                    <input type="text" id="new-tipo" class="flex-1 p-2 border rounded-lg text-sm" placeholder="Novo tipo...">
-                    <button onclick="app.addSetting('tipo')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus" class="w-5 h-5"></i></button>
-                </div>
-                <div id="list-settings-tipo" class="max-h-40 overflow-y-auto space-y-2 border-t pt-2"></div>
+                <h3 class="font-bold text-blue-700 flex items-center gap-2"><i data-lucide="droplet" class="w-4 h-4"></i> Tipos</h3>
+                <div class="flex gap-2"><input type="text" id="new-tipo" class="flex-1 p-2 border rounded-lg text-sm"><button onclick="app.addSetting('tipo')" class="bg-green-600 text-white p-2 rounded-lg"><i data-lucide="plus"></i></button></div>
+                <div id="list-settings-tipo" class="max-h-40 overflow-y-auto border-t pt-2 space-y-2"></div>
             </div>
         </div>
 
-        <!-- RODAPÉ: CRÉDITOS -->
+        <!-- CREDITOS -->
         <div class="footer-credit text-center text-[10px] text-gray-400 py-6 mb-12">
             Desenvolvido por Thiego Pereira
         </div>
-
     </main>
 
-    <!-- Navigation -->
-    <nav class="bottom-nav bg-white border-t border-gray-200 fixed bottom-0 w-full z-20">
+    <!-- NAV -->
+    <nav class="bottom-nav bg-white border-t border-gray-200 fixed bottom-0 w-full z-20" id="main-nav">
         <div class="flex justify-around items-center h-16">
-            <button onclick="ui.navigate('home')" class="nav-btn active flex-1 flex flex-col items-center justify-center text-blue-600">
-                <i data-lucide="plus-circle" class="w-6 h-6"></i> <span class="text-[10px] font-medium mt-1">Novo</span>
-            </button>
-            <button onclick="ui.navigate('list')" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400 hover:text-blue-500">
-                <i data-lucide="list" class="w-6 h-6"></i> <span class="text-[10px] font-medium mt-1">Registros</span>
-            </button>
-            <button onclick="ui.navigate('reports')" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400 hover:text-blue-500">
-                <i data-lucide="bar-chart-2" class="w-6 h-6"></i> <span class="text-[10px] font-medium mt-1">Relat.</span>
-            </button>
-            <button onclick="ui.navigate('settings')" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400 hover:text-blue-500">
-                <i data-lucide="settings" class="w-6 h-6"></i> <span class="text-[10px] font-medium mt-1">Config</span>
-            </button>
+            <button onclick="ui.navigate('home')" class="nav-btn active flex-1 flex flex-col items-center justify-center text-blue-600"><i data-lucide="plus-circle" class="w-6 h-6"></i> <span class="text-[10px] mt-1">Novo</span></button>
+            <button onclick="ui.navigate('list')" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400"><i data-lucide="list" class="w-6 h-6"></i> <span class="text-[10px] mt-1">Lista</span></button>
+            <button onclick="ui.navigate('reports')" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400"><i data-lucide="bar-chart-2" class="w-6 h-6"></i> <span class="text-[10px] mt-1">Relat.</span></button>
+            <button onclick="ui.navigate('settings')" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400"><i data-lucide="settings" class="w-6 h-6"></i> <span class="text-[10px] mt-1">Config</span></button>
         </div>
     </nav>
 
-    <!-- JS: UTILS -->
     <script>
+        // *** ATUALIZE AQUI O LINK DA SUA API ***
+        const API_URL = "https://script.google.com/macros/s/AKfycbzehxgBi_WiXXb5rRf-H8qfgh0vRl640-2BeTbzO5BWLoV4flMnEIqbOUHxQpVdTM3JRQ/exec";
+        const MOCK_MODE = false;
+
         const utils = {
-            formatDateBR: (dateString) => {
-                if(!dateString) return '';
-                const parts = dateString.split('-'); 
-                if(parts.length !== 3) return dateString;
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            formatDateBR: d => d ? d.split('-').reverse().join('/') : '',
+            getToday: () => new Date().toISOString().split('T')[0],
+            // Formatador de data personalizado para o dashboard
+            getCurrentMonthLabel: () => {
+                const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                const now = new Date();
+                return `${months[now.getMonth()]} / ${now.getFullYear()}`;
             },
-            getTodayInputFormat: () => new Date().toISOString().split('T')[0],
-            getDateTimeString: () => new Date().toLocaleString('pt-BR'),
+            getCurrentYearLabel: () => `Ano Atual ${new Date().getFullYear()}`,
             
-            // Modal Customizado
-            showAlert: (title, msg) => {
-                document.getElementById('alert-title').textContent = title || "Atenção";
-                document.getElementById('alert-message').textContent = msg;
-                document.getElementById('custom-alert').classList.remove('hidden');
+            maskPhone: v => v.replace(/\D/g,"").replace(/^(\d{2})(\d)/g,"($1) $2").replace(/(\d)(\d{4})$/,"$1-$2"),
+            showAlert: (t, m) => { document.getElementById('alert-title').innerText=t; document.getElementById('alert-message').innerText=m; document.getElementById('custom-alert').classList.remove('hidden'); },
+            closeAlert: () => document.getElementById('custom-alert').classList.add('hidden')
+        };
+
+        const ui = {
+            loading: (show, text) => { 
+                const el = document.getElementById('loading-overlay');
+                if(text) document.getElementById('loading-text').textContent = text;
+                show ? el.classList.remove('hidden') : el.classList.add('hidden');
             },
-            closeAlert: () => {
-                document.getElementById('custom-alert').classList.add('hidden');
+            toggleLogin: (show) => {
+                const loginEl = document.getElementById('view-login');
+                const navEl = document.getElementById('main-nav');
+                const headerEl = document.getElementById('app-header');
+                
+                if(show) {
+                    loginEl.classList.remove('hidden');
+                    navEl.classList.add('hidden');
+                    headerEl.classList.add('hidden');
+                } else {
+                    loginEl.classList.add('hidden');
+                    navEl.classList.remove('hidden');
+                    headerEl.classList.remove('hidden');
+                }
             },
-            
-            maskPhone: (v) => {
-                v = v.replace(/\D/g, "");
-                v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
-                v = v.replace(/(\d)(\d{4})$/, "$1-$2");
-                return v;
+            updateDashboardLabels: () => {
+                document.getElementById('label-mes').textContent = utils.getCurrentMonthLabel();
+                document.getElementById('label-ano').textContent = utils.getCurrentYearLabel();
+            },
+            navigate: (id) => {
+                document.querySelectorAll('.screen').forEach(e => e.classList.remove('active'));
+                document.querySelectorAll('.nav-btn').forEach(e => { e.classList.remove('text-blue-600'); e.classList.add('text-gray-400'); });
+                document.getElementById(`view-${id}`).classList.add('active');
+                
+                const map = {home:0, list:1, reports:2, settings:3};
+                document.querySelectorAll('.nav-btn')[map[id]].classList.replace('text-gray-400','text-blue-600');
+                if(id === 'list') app.loadHistory(1);
+            },
+            renderList: (data, page, total) => {
+                const c = document.getElementById('list-container'); c.innerHTML = '';
+                if(!data || !data.length) { c.innerHTML = '<div class="text-center text-gray-500 mt-10">Vazio</div>'; return; }
+                data.forEach(i => {
+                    c.innerHTML += `<div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-2">
+                        <div class="flex justify-between"><div><h3 class="font-bold">${i.nome}</h3><p class="text-sm text-gray-500">${i.comunidade}</p></div><span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded h-fit">${i.tipo}</span></div>
+                        <div class="mt-2 text-sm text-gray-600 flex justify-between"><span>${utils.formatDateBR(i.dataAgendada)}</span><span>${i.periodo}</span></div>
+                    </div>`;
+                });
+                const pc = document.getElementById('pagination-controls');
+                if(total > 1) { pc.classList.remove('hidden'); document.getElementById('page-info').innerText = `Pág ${page}/${total}`; } else pc.classList.add('hidden');
             }
         };
-    </script>
-
-    <!-- JS: API -->
-    <script>
-        // *** IMPORTANTE: MANTENHA O LINK DA SUA API ***
-        const API_URL = "https://script.google.com/macros/s/AKfycbzehxgBi_WiXXb5rRf-H8qfgh0vRl640-2BeTbzO5BWLoV4flMnEIqbOUHxQpVdTM3JRQ/exec";
-        
-        const MOCK_MODE = false; 
 
         const api = {
-            getInitialData: async () => {
-                if(MOCK_MODE) return api.mockData;
-                const response = await fetch(API_URL);
-                return await response.json();
+            req: async (body) => {
+                if(MOCK_MODE) return {success:true, dashboard:{mes:1,ano:1}, data:[], totalPages:1};
+                const res = await fetch(API_URL, {method:'POST', body: JSON.stringify(body)});
+                return await res.json();
             },
-            saveSupply: async (formData) => {
-                if(MOCK_MODE) return {success: true, dashboard: {mes: 99, ano: 999}};
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ op: "save", payload: formData })
-                });
-                return await response.json();
-            },
-            getHistory: async (page, filterDate, filterCom) => {
-                if(MOCK_MODE) return {data: [], totalPages: 1};
-                let url = `${API_URL}?op=history&page=${page}`;
-                if(filterDate) url += `&filterDate=${filterDate}`;
-                if(filterCom) url += `&filterCom=${encodeURIComponent(filterCom)}`;
-                const response = await fetch(url);
-                return await response.json();
-            },
-            getReport: async (start, end, com) => {
-                if(MOCK_MODE) return [];
-                const url = `${API_URL}?op=report&start=${start}&end=${end}&com=${encodeURIComponent(com)}`;
-                const response = await fetch(url);
-                return await response.json();
-            },
-            addSetting: async (type, value) => {
-                if(MOCK_MODE) return {success: true};
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ op: "settings_add", payload: {type, value} })
-                });
-                return await response.json();
-            },
-            deleteSetting: async (type, value) => {
-                if(MOCK_MODE) return {success: true};
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ op: "settings_del", payload: {type, value} })
-                });
-                return await response.json();
-            },
-            mockData: { locais: ["Mock1"], abastecimentos: ["Mock2"], dashboard: {mes:0, ano:0} }
-        };
-    </script>
-
-    <!-- JS: UI -->
-    <script>
-        const ui = {
-            loading: (isLoading, text = "Carregando...") => {
-                const el = document.getElementById('loading-overlay');
-                document.getElementById('loading-text').textContent = text;
-                if(isLoading) el.classList.remove('hidden'); else el.classList.add('hidden');
-            },
-            navigate: (screenId) => {
-                document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('.nav-btn').forEach(el => {
-                    el.classList.remove('text-blue-600');
-                    el.classList.add('text-gray-400');
-                });
-                document.getElementById(`view-${screenId}`).classList.add('active');
-                
-                const map = {'home':0, 'list':1, 'reports':2, 'settings':3};
-                const activeBtn = document.querySelectorAll('.nav-btn')[map[screenId]];
-                if(activeBtn) {
-                    activeBtn.classList.remove('text-gray-400');
-                    activeBtn.classList.add('text-blue-600');
-                }
-                
-                if(screenId === 'list') app.loadHistory(1);
-            },
-            populateSelects: (locais, tipos) => {
-                document.querySelectorAll('.select-locais-dinamico').forEach(select => {
-                    const firstOption = select.options[0];
-                    select.innerHTML = '';
-                    select.appendChild(firstOption);
-                    locais.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item;
-                        option.textContent = item;
-                        select.appendChild(option);
-                    });
-                });
-
-                document.querySelectorAll('.select-tipos-dinamico').forEach(select => {
-                    select.innerHTML = '<option value="">Selecione...</option>';
-                    tipos.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item;
-                        option.textContent = item;
-                        select.appendChild(option);
-                    });
-                });
-            },
-            renderSettingsList: (containerId, items, type) => {
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
-                items.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = "flex justify-between items-center bg-gray-50 p-2 rounded text-sm";
-                    div.innerHTML = `
-                        <span>${item}</span>
-                        <button onclick="app.deleteSetting('${type}', '${item}')" class="text-red-500 hover:text-red-700">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    `;
-                    container.appendChild(div);
-                });
-                lucide.createIcons();
-            },
-            updateDashboard: (data) => {
-                const mesEl = document.getElementById('dash-mes');
-                const anoEl = document.getElementById('dash-ano');
-                mesEl.textContent = data.mes; anoEl.textContent = data.ano;
-                mesEl.classList.remove('pulse-update'); anoEl.classList.remove('pulse-update');
-                void mesEl.offsetWidth; 
-                mesEl.classList.add('pulse-update'); anoEl.classList.add('pulse-update');
-            },
-            renderList: (data, page, totalPages) => {
-                const container = document.getElementById('list-container');
-                container.innerHTML = '';
-                if (!data || data.length === 0) {
-                    container.innerHTML = '<div class="text-center text-gray-500 py-8">Nenhum registro encontrado.</div>';
-                    document.getElementById('pagination-controls').classList.add('hidden');
-                    return;
-                }
-                data.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = 'bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-3';
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="font-bold text-gray-800">${item.nome}</h3>
-                                <p class="text-sm text-gray-500 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${item.comunidade}</p>
-                            </div>
-                            <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded">${item.tipo}</span>
-                        </div>
-                        <div class="mt-2 flex justify-between items-center text-sm text-gray-600">
-                            <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${utils.formatDateBR(item.dataAgendada)}</span>
-                            <span>${item.periodo}</span>
-                        </div>`;
-                    container.appendChild(card);
-                });
-                
-                const pageControls = document.getElementById('pagination-controls');
-                if(totalPages > 1) {
-                    pageControls.classList.remove('hidden');
-                    document.getElementById('page-info').textContent = `Pág ${page} de ${totalPages}`;
-                } else {
-                    pageControls.classList.add('hidden');
-                }
-                lucide.createIcons();
-            },
-            renderReportTable: (data) => {
-                const tbody = document.getElementById('report-table-body');
-                document.getElementById('report-count').textContent = data.length;
-                document.getElementById('report-results').classList.remove('hidden');
-                
-                const inicio = utils.formatDateBR(document.getElementById('rel-inicio').value);
-                const fim = utils.formatDateBR(document.getElementById('rel-fim').value);
-                document.getElementById('print-subtitle').textContent = `Período: ${inicio} a ${fim}`;
-                
-                // Atualiza Data/Hora de Geração
-                document.getElementById('report-timestamp').textContent = `Gerado em: ${utils.getDateTimeString()}`;
-
-                tbody.innerHTML = '';
-                if(data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Sem dados</td></tr>';
-                    return;
-                }
-                data.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.className = "bg-white border-b hover:bg-gray-50";
-                    tr.innerHTML = `
-                        <td class="px-4 py-3 font-medium text-gray-900">${utils.formatDateBR(item.data)}</td>
-                        <td class="px-4 py-3 text-gray-500">${item.nome}</td>
-                        <td class="px-4 py-3 text-gray-500 text-xs">${item.endereco}</td>
-                        <td class="px-4 py-3 text-gray-500">${item.comunidade}</td>
-                        <td class="px-4 py-3 text-gray-500">${item.tipo}</td>
-                        <td class="px-4 py-3 border-l text-center col-assinatura"></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+            get: async (params) => {
+                if(MOCK_MODE) return {success:true, data:[]};
+                const res = await fetch(`${API_URL}?${new URLSearchParams(params)}`);
+                return await res.json();
             }
         };
-    </script>
 
-    <!-- JS: APP MAIN -->
-    <script>
         const app = {
-            data: { locais: [], tipos: [] },
-            listState: { page: 1, totalPages: 1 },
+            data: { locais:[], tipos:[] },
+            state: { page:1, total:1, user: null },
 
             init: async () => {
-                ui.loading(true, "Iniciando sistema...");
+                ui.loading(true, "Iniciando...");
                 lucide.createIcons();
-                document.getElementById('input-date').value = utils.getTodayInputFormat();
-                document.getElementById('rel-inicio').value = utils.getTodayInputFormat();
-                document.getElementById('rel-fim').value = utils.getTodayInputFormat();
+                ui.updateDashboardLabels(); // Aplica a formatação de data
+                
+                const today = utils.getToday();
+                ['input-date','rel-inicio','rel-fim','filter-date'].forEach(id => document.getElementById(id).value = today);
+                document.getElementById('input-whatsapp').addEventListener('input', e => e.target.value = utils.maskPhone(e.target.value));
 
-                document.getElementById('input-whatsapp').addEventListener('input', function(e) {
-                    e.target.value = utils.maskPhone(e.target.value);
-                });
+                // 1. Verifica Sessão
+                const savedUser = localStorage.getItem('app_user');
+                if(savedUser) {
+                    app.state.user = JSON.parse(savedUser);
+                    app.loadApp();
+                } else {
+                    app.loadLoginScreen();
+                }
+            },
 
+            loadLoginScreen: async () => {
+                ui.toggleLogin(true);
+                ui.loading(false);
+                // Carrega config (Logo, Capa)
                 try {
-                    const response = await api.getInitialData();
-                    if(response.error) throw response.error;
+                    const config = await api.get({op:'config'});
+                    if(config) {
+                        if(config.app_name) document.getElementById('app-name-display').innerText = config.app_name;
+                        if(config.greeting) document.getElementById('greeting-display').innerText = config.greeting;
+                        if(config.cover_url) document.getElementById('view-login').style.backgroundImage = `url('${config.cover_url}')`;
+                        if(config.logo_url) {
+                            const logo = document.getElementById('login-logo');
+                            logo.src = config.logo_url; logo.classList.remove('hidden');
+                            document.getElementById('login-logo-placeholder').classList.add('hidden');
+                        }
+                    }
+                } catch(e) { console.log("Config load error", e); }
+            },
 
-                    app.data.locais = response.locais;
-                    app.data.tipos = response.abastecimentos;
-
-                    app.refreshAllSelects();
-                    ui.updateDashboard(response.dashboard);
-                } catch (e) {
-                    console.error(e);
-                    utils.showAlert("Erro", "Falha ao conectar: " + e);
-                } finally {
+            login: async (e) => {
+                e.preventDefault();
+                ui.loading(true, "Autenticando...");
+                const data = Object.fromEntries(new FormData(e.target));
+                try {
+                    const res = await api.req({op:'login', payload: data});
+                    if(res.success) {
+                        app.state.user = { name: res.name, token: res.token };
+                        localStorage.setItem('app_user', JSON.stringify(app.state.user));
+                        app.loadApp();
+                        e.target.reset();
+                    } else {
+                        utils.showAlert("Erro", res.error);
+                        ui.loading(false);
+                    }
+                } catch(err) {
+                    utils.showAlert("Erro", "Falha na conexão.");
                     ui.loading(false);
                 }
-
-                document.getElementById('form-cadastro').addEventListener('submit', app.handleSubmit);
             },
-            
-            refreshAllSelects: () => {
-                ui.populateSelects(app.data.locais, app.data.tipos);
-                ui.renderSettingsList('list-settings-local', app.data.locais, 'local');
-                ui.renderSettingsList('list-settings-tipo', app.data.tipos, 'tipo');
+
+            logout: () => {
+                if(confirm("Deseja realmente sair?")) {
+                    localStorage.removeItem('app_user');
+                    location.reload();
+                }
+            },
+
+            loadApp: async () => {
+                ui.toggleLogin(false);
+                document.getElementById('user-display').innerText = app.state.user.name || 'Usuário';
+                ui.loading(true, "Sincronizando...");
+                
+                try {
+                    const res = await api.get({op:'initial'});
+                    if(res.error) throw res.error;
+
+                    app.data.locais = res.locais || [];
+                    app.data.tipos = res.abastecimentos || [];
+                    
+                    app.refreshSelects();
+                    app.updateDashboard(res.dashboard);
+                    ui.loading(false);
+                } catch(e) {
+                    utils.showAlert("Erro", "Falha ao carregar dados: " + e);
+                    ui.loading(false);
+                }
+            },
+
+            refreshSelects: () => {
+                const fill = (cls, list) => {
+                    document.querySelectorAll(cls).forEach(sel => {
+                        sel.innerHTML = cls.includes('locais') ? (sel.id.includes('filter') ? '<option value="">Todas</option>' : '<option value="">Selecione...</option>') : '<option value="">Selecione...</option>';
+                        list.forEach(i => sel.innerHTML += `<option value="${i}">${i}</option>`);
+                    });
+                };
+                fill('.select-locais-dinamico', app.data.locais);
+                fill('.select-tipos-dinamico', app.data.tipos);
+                
+                // Config Lists
+                const render = (id, list, type) => {
+                    const el = document.getElementById(id); el.innerHTML = '';
+                    list.forEach(i => el.innerHTML += `<div class="flex justify-between p-2 bg-gray-50 rounded text-sm"><span>${i}</span><button onclick="app.reqSettings('del','${type}','${i}')" class="text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`);
+                };
+                render('list-settings-local', app.data.locais, 'local');
+                render('list-settings-tipo', app.data.tipos, 'tipo');
+                lucide.createIcons();
             },
 
             handleSubmit: async (e) => {
                 e.preventDefault();
-                ui.loading(true, "Confirmando agendamento...");
-                const formData = new FormData(e.target);
-                const data = Object.fromEntries(formData.entries());
-                const selectedDate = data.dataAgendada;
-
+                ui.loading(true, "Salvando...");
+                const data = Object.fromEntries(new FormData(e.target));
+                const dateBackup = data.dataAgendada;
+                
                 try {
-                    const response = await api.saveSupply(data);
-                    if (response.success) {
-                        utils.showAlert("Sucesso", "Agendamento realizado com sucesso!");
+                    const res = await api.req({op:'save', payload: data});
+                    if(res.success) {
+                        utils.showAlert("Sucesso", "Registro salvo!");
                         e.target.reset();
-                        document.getElementById('input-date').value = selectedDate;
-                        ui.updateDashboard(response.dashboard);
-                    } else {
-                        utils.showAlert("Erro", response.error || "Erro desconhecido");
-                    }
-                } catch (err) { utils.showAlert("Erro", "Problema de conexão: " + err); } 
-                finally { ui.loading(false); }
+                        document.getElementById('input-date').value = dateBackup;
+                        app.updateDashboard(res.dashboard);
+                    } else utils.showAlert("Erro", res.error);
+                } catch(err) { utils.showAlert("Erro", err); }
+                ui.loading(false);
             },
 
             loadHistory: async (page) => {
                 if(page < 1) return;
-                ui.loading(true, "Buscando histórico...");
+                ui.loading(true, "Buscando...");
+                const fd = document.getElementById('filter-date').value;
+                const fc = document.getElementById('filter-com').value;
                 
-                const filterDate = document.getElementById('filter-date').value;
-                const filterCom = document.getElementById('filter-com').value;
-
                 try {
-                    const result = await api.getHistory(page, filterDate, filterCom);
-                    app.listState.page = result.page;
-                    app.listState.totalPages = result.totalPages;
-                    ui.renderList(result.data, result.page, result.totalPages);
-                } catch (e) { console.error(e); } 
-                finally { ui.loading(false); }
+                    const res = await api.get({op:'history', page, filterDate:fd, filterCom:fc});
+                    app.state.page = res.page; app.state.total = res.totalPages;
+                    ui.renderList(res.data, res.page, res.totalPages);
+                } catch(e) { console.error(e); }
+                ui.loading(false);
             },
 
-            changePage: (direction) => {
-                const newPage = app.listState.page + direction;
-                if(newPage > 0 && newPage <= app.listState.totalPages) {
-                    app.loadHistory(newPage);
-                }
+            changePage: (d) => {
+                const n = app.state.page + d;
+                if(n > 0 && n <= app.state.total) app.loadHistory(n);
             },
 
             generateReport: async () => {
-                const start = document.getElementById('rel-inicio').value;
-                const end = document.getElementById('rel-fim').value;
-                const com = document.getElementById('rel-comunidade').value;
-                if(!start || !end) { utils.showAlert("Atenção", "Selecione as datas."); return; }
+                const s = document.getElementById('rel-inicio').value;
+                const e = document.getElementById('rel-fim').value;
+                const c = document.getElementById('rel-comunidade').value;
+                if(!s || !e) return utils.showAlert("Ops", "Selecione as datas");
+
+                ui.loading(true, "Gerando...");
+                const res = await api.get({op:'report', start:s, end:e, com:c});
                 
-                ui.loading(true, "Gerando relatório...");
-                try {
-                    const data = await api.getReport(start, end, com);
-                    ui.renderReportTable(data);
-                } catch(e) { console.error(e); } 
-                finally { ui.loading(false); }
+                document.getElementById('report-count').innerText = res.length;
+                document.getElementById('report-timestamp').innerText = "Gerado em: " + new Date().toLocaleString();
+                document.getElementById('print-subtitle').innerText = `Período: ${utils.formatDateBR(s)} a ${utils.formatDateBR(e)}`;
+                document.getElementById('report-results').classList.remove('hidden');
+
+                const tb = document.getElementById('report-table-body'); tb.innerHTML = '';
+                if(!res.length) tb.innerHTML = '<tr><td colspan="6" class="text-center p-4">Vazio</td></tr>';
+                res.forEach(i => {
+                    tb.innerHTML += `<tr class="border-b"><td class="p-2">${utils.formatDateBR(i.data)}</td><td class="p-2">${i.nome}</td><td class="p-2 text-xs">${i.endereco}</td><td class="p-2">${i.comunidade}</td><td class="p-2">${i.tipo}</td><td class="border-l col-assinatura"></td></tr>`;
+                });
+                ui.loading(false);
             },
-
-            addSetting: async (type) => {
-                const inputId = type === 'local' ? 'new-local' : 'new-tipo';
-                const input = document.getElementById(inputId);
-                const value = input.value.trim().toUpperCase();
-
-                if(!value) return;
-                
-                ui.loading(true, "Adicionando...");
-                try {
-                    const response = await api.addSetting(type, value);
-                    if(response.success) {
-                        if(type === 'local') app.data.locais.push(value);
-                        else app.data.tipos.push(value);
-                        
-                        app.refreshAllSelects();
-                        input.value = '';
-                        utils.showAlert("Sucesso", "Item adicionado!");
-                    } else { utils.showAlert("Erro", "Não foi possível adicionar."); }
-                } catch(e) { console.error(e); } 
-                finally { ui.loading(false); }
+            
+            reqSettings: async (op, type, val) => {
+                if(op === 'del' && !confirm("Remover?")) return;
+                if(op === 'add') {
+                    const el = document.getElementById(type === 'local' ? 'new-local' : 'new-tipo');
+                    val = el.value.toUpperCase();
+                    if(!val) return;
+                    el.value = '';
+                }
+                ui.loading(true);
+                const res = await api.req({op: op === 'add' ? 'settings_add' : 'settings_del', payload:{type, value:val}});
+                if(res.success) {
+                    const list = type === 'local' ? app.data.locais : app.data.tipos;
+                    if(op === 'add') list.push(val);
+                    else {
+                         const idx = list.indexOf(val);
+                         if (idx > -1) list.splice(idx, 1);
+                    }
+                    app.refreshSelects();
+                }
+                ui.loading(false);
             },
-
-            deleteSetting: async (type, value) => {
-                if(!confirm(`Deseja remover "${value}"?`)) return;
-                
-                ui.loading(true, "Removendo...");
-                try {
-                    const response = await api.deleteSetting(type, value);
-                    if(response.success) {
-                        if(type === 'local') app.data.locais = app.data.locais.filter(i => i !== value);
-                        else app.data.tipos = app.data.tipos.filter(i => i !== value);
-                        
-                        app.refreshAllSelects();
-                        utils.showAlert("Sucesso", "Item removido!");
-                    } else { utils.showAlert("Erro", "Não foi possível remover."); }
-                } catch(e) { console.error(e); } 
-                finally { ui.loading(false); }
+            
+            addSetting: (type) => app.reqSettings('add', type),
+            deleteSetting: (type, val) => app.reqSettings('del', type, val),
+            
+            updateDashboard: (d) => {
+                const m = document.getElementById('dash-mes'); const a = document.getElementById('dash-ano');
+                m.innerText = d.mes; a.innerText = d.ano;
+                m.classList.remove('pulse-update'); a.classList.remove('pulse-update');
+                void m.offsetWidth; m.classList.add('pulse-update'); a.classList.add('pulse-update');
             }
         };
+
+        document.getElementById('form-login').addEventListener('submit', app.login);
         document.addEventListener('DOMContentLoaded', app.init);
     </script>
 </body>
