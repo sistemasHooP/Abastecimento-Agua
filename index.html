@@ -146,7 +146,7 @@
                 </div>
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/30 transition-transform active:scale-95">Entrar no Sistema</button>
             </form>
-            <p class="text-center text-gray-400 text-xs mt-6">Desenvolvido por Thiego Pereira</p>
+            <p class="text-center text-blue-300 text-sm font-bold mt-8 tracking-wide drop-shadow-md">Desenvolvido por Thiego Pereira</p>
         </div>
     </div>
 
@@ -177,7 +177,6 @@
                 </div>
             </div>
 
-            <!-- Formulário -->
             <div class="bg-white rounded-xl shadow-sm p-5 border-2 border-transparent transition-colors" id="card-form-wrapper">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-semibold text-blue-700" id="form-title">Novo Agendamento</h2>
@@ -185,7 +184,6 @@
                 </div>
                 
                 <form id="form-cadastro" class="space-y-4" onsubmit="event.preventDefault(); app.handleSubmit(event)">
-                    <!-- Hidden ID para Edição -->
                     <input type="hidden" name="id" id="input-id">
 
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 transition-colors" id="date-wrapper">
@@ -278,7 +276,9 @@
             </div>
         </div>
 
-        <div class="footer-credit text-center text-[10px] text-gray-400 py-6 mb-12">Desenvolvido por Thiego Pereira</div>
+        <div class="footer-credit text-center text-xs text-gray-600 font-bold uppercase tracking-widest py-6 mb-16 opacity-70">
+            Desenvolvido por Thiego Pereira
+        </div>
     </main>
 
     <!-- NAV INFERIOR -->
@@ -328,7 +328,16 @@
 
         const utils = {
             formatDateBR: d => d ? d.split('-').reverse().join('/') : '',
-            getToday: () => new Date().toISOString().split('T')[0],
+            
+            // CORREÇÃO DATA LOCAL
+            getToday: () => {
+                const d = new Date();
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            },
+            
             getCurrentMonthLabel: () => ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][new Date().getMonth()] + " / " + new Date().getFullYear(),
             getCurrentYearLabel: () => `Ano Atual ${new Date().getFullYear()}`,
             maskPhone: v => v.replace(/\D/g,"").replace(/^(\d{2})(\d)/g,"($1) $2").replace(/(\d)(\d{4})$/,"$1-$2"),
@@ -406,7 +415,10 @@
                     c.innerHTML += `
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-2">
                         <div class="flex justify-between items-start mb-2">
-                            <div><h3 class="font-bold text-gray-800">${i.nome}</h3><p class="text-sm text-gray-500 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${i.comunidade}</p></div>
+                            <div>
+                                <h3 class="font-bold text-gray-800">${i.nome}</h3>
+                                <p class="text-sm text-gray-500 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${i.comunidade}</p>
+                            </div>
                             <div class="flex gap-2">
                                 <button onclick="app.prepareEdit(${itemJson})" class="text-amber-500 hover:text-amber-700 bg-amber-50 p-1.5 rounded action-buttons"><i data-lucide="pencil" class="w-4 h-4"></i></button>
                                 <button onclick="app.deleteItem('${i.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded action-buttons"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -502,35 +514,9 @@
                 render('list-settings-local', app.data.locais, 'local'); render('list-settings-tipo', app.data.tipos, 'tipo');
                 if(window.lucide) lucide.createIcons();
             },
-            // EDIT LOGIC
-            prepareEdit: (item) => {
-                app.state.editingId = item.id;
-                document.getElementById('input-id').value = item.id;
-                document.getElementById('input-date').value = item.dataAgendada;
-                document.getElementById('input-nome').value = item.nome;
-                document.getElementById('input-whatsapp').value = item.whatsapp;
-                document.getElementById('input-endereco').value = item.endereco;
-                document.getElementById('select-comunidade').value = item.comunidade;
-                document.getElementById('select-tipo').value = item.tipo;
-                document.getElementById('input-periodo').value = item.periodo;
-                ui.toggleEditMode(true);
-                ui.navigate('home');
-                window.scrollTo({top:0, behavior:'smooth'});
-                utils.showAlert("Modo Edição", "Altere os dados e clique em Atualizar.");
-            },
-            cancelEdit: () => { app.state.editingId = null; ui.toggleEditMode(false); },
-            deleteItem: (id) => {
-                utils.showConfirm("Excluir", "Deseja remover este registro?", async () => {
-                    ui.loading(true, "Excluindo...");
-                    try {
-                        const res = await api.req({op:'delete_supply', payload: {id}});
-                        if(res.success) { utils.showAlert("Sucesso", "Registro excluído!"); app.loadHistory(app.state.page); app.updateDashboard(res.dashboard); } else utils.showAlert("Erro", res.error);
-                    } catch(e) { utils.showAlert("Erro", e); }
-                    ui.loading(false);
-                });
-            },
             handleSubmit: async (e) => {
                 if(e) e.preventDefault();
+                ui.loading(true, "Salvando...");
                 const form = document.getElementById('form-cadastro'); const data = Object.fromEntries(new FormData(form).entries()); const dateBackup = data.dataAgendada;
                 const operation = app.state.editingId ? 'update_supply' : 'save';
                 const loadText = app.state.editingId ? "Atualizando..." : "Salvando...";
