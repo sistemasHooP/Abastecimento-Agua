@@ -55,7 +55,7 @@
         #install-banner { animation: slideUp 0.5s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        /* MODO EDIÇÃO - Bordas Laranjas */
+        /* MODO EDIÇÃO */
         .editing-mode { border-color: #f59e0b !important; }
         .editing-mode-btn { background-color: #f59e0b !important; }
 
@@ -206,12 +206,10 @@
             </div>
         </div>
 
-        <!-- LISTA (FILTRO DE PERÍODO ATUALIZADO) -->
+        <!-- LISTA -->
         <div id="view-list" class="screen p-4 space-y-4">
             <h2 class="text-xl font-bold text-gray-800">Histórico</h2>
             <div class="bg-white p-3 rounded-lg shadow-sm space-y-3">
-                
-                <!-- NOVOS CAMPOS DE DATA PARA FILTRO (DE / ATÉ) -->
                 <div class="grid grid-cols-2 gap-2">
                     <div class="flex flex-col">
                         <label class="text-[10px] text-gray-500 font-bold mb-1">DE:</label>
@@ -222,14 +220,9 @@
                         <input type="date" id="filter-end" class="w-full p-2 border rounded text-sm bg-gray-50">
                     </div>
                 </div>
-
                 <select id="filter-com" class="w-full p-2 border rounded text-sm bg-gray-50 select-locais-dinamico"><option value="">Todas as Comunidades</option></select>
-                
-                <button onclick="app.loadHistory(1)" class="w-full bg-blue-100 text-blue-700 font-bold py-2 rounded text-sm flex justify-center items-center gap-2">
-                    <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
-                </button>
+                <button onclick="app.loadHistory(1)" class="w-full bg-blue-100 text-blue-700 font-bold py-2 rounded text-sm flex justify-center items-center gap-2"><i data-lucide="filter" class="w-4 h-4"></i> Filtrar</button>
             </div>
-            
             <div id="list-container" class="space-y-3 pb-2 min-h-[100px]"><div class="text-center text-gray-400 mt-10">...</div></div>
             <div id="pagination-controls" class="flex justify-between items-center pt-2 hidden">
                 <button onclick="app.changePage(-1)" class="bg-white border px-4 py-2 rounded text-sm font-medium">Anterior</button>
@@ -378,7 +371,15 @@
                 document.getElementById(`view-${id}`).classList.add('active');
                 const map = {home:0, list:1, reports:2, settings:3};
                 document.querySelectorAll('.nav-btn')[map[id]].classList.replace('text-gray-400','text-blue-600');
-                if(id === 'list') app.loadHistory(1);
+                
+                // CARREGA A LISTA DO DIA ATUAL AUTOMATICAMENTE
+                if(id === 'list') {
+                    // Reseta filtros para o dia atual
+                    const today = utils.getToday();
+                    document.getElementById('filter-start').value = today;
+                    document.getElementById('filter-end').value = today;
+                    app.loadHistory(1);
+                }
             },
             toggleEditMode: (active) => {
                 const wrapper = document.getElementById('card-form-wrapper');
@@ -408,13 +409,17 @@
                     dateWrapper.classList.add('bg-blue-50', 'border-blue-100');
                     document.getElementById('form-cadastro').reset();
                     document.getElementById('input-id').value = '';
-                    document.getElementById('input-date').value = utils.getToday(); // Restore sticky date
+                    document.getElementById('input-date').value = utils.getToday(); 
                 }
             },
             renderList: (data, page, total) => {
                 const c = document.getElementById('list-container'); c.innerHTML = '';
                 if(!data || !data.length) { c.innerHTML = '<div class="text-center text-gray-500 mt-10">Vazio</div>'; return; }
                 const whatsappIcon = `<svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>`;
+                
+                // SALVA A LISTA ATUAL NA MEMÓRIA PARA EDIÇÃO
+                app.state.currentHistory = data;
+
                 data.forEach(i => {
                     let linkWa = '#', btnClass = 'bg-gray-400 cursor-not-allowed', btnAction = `onclick="utils.showAlert('Aviso','Telefone não cadastrado')"`;
                     if(i.whatsapp) {
@@ -425,8 +430,6 @@
                         btnAction = `href="${linkWa}" target="_blank"`;
                     }
                     
-                    const itemJson = JSON.stringify(i).replace(/"/g, '&quot;');
-
                     c.innerHTML += `
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-2">
                         <div class="flex justify-between items-start mb-2">
@@ -435,7 +438,7 @@
                                 <p class="text-sm text-gray-500 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${i.comunidade}</p>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="app.prepareEdit(${itemJson})" class="text-amber-500 hover:text-amber-700 bg-amber-50 p-1.5 rounded action-buttons"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                <button onclick="app.prepareEdit('${i.id}')" class="text-amber-500 hover:text-amber-700 bg-amber-50 p-1.5 rounded action-buttons"><i data-lucide="pencil" class="w-4 h-4"></i></button>
                                 <button onclick="app.deleteItem('${i.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded action-buttons"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                             </div>
                         </div>
@@ -468,14 +471,14 @@
 
         const app = {
             data: { locais:[], tipos:[] },
-            state: { page:1, total:1, user: null, editingId: null },
+            state: { page:1, total:1, user: null, editingId: null, currentHistory: [] },
             init: async () => {
                 pwa.init();
                 ui.loading(true, "Iniciando...");
                 
                 // Wake up Google Sheets
                 api.wakeUp();
-                setInterval(() => api.wakeUp(), 4 * 60 * 1000); // Keep alive every 4 min
+                setInterval(() => api.wakeUp(), 4 * 60 * 1000); 
 
                 if(window.lucide) lucide.createIcons();
                 ui.updateDashboardLabels();
@@ -529,9 +532,46 @@
                 render('list-settings-local', app.data.locais, 'local'); render('list-settings-tipo', app.data.tipos, 'tipo');
                 if(window.lucide) lucide.createIcons();
             },
+            // EDIT LOGIC (SAFE)
+            prepareEdit: (id) => {
+                const item = app.state.currentHistory.find(i => i.id === id);
+                if (!item) return utils.showAlert("Erro", "Item não encontrado");
+
+                app.state.editingId = item.id;
+                document.getElementById('input-id').value = item.id;
+                document.getElementById('input-date').value = item.dataAgendada;
+                document.getElementById('input-nome').value = item.nome;
+                document.getElementById('input-whatsapp').value = item.whatsapp;
+                document.getElementById('input-endereco').value = item.endereco;
+                document.getElementById('select-comunidade').value = item.comunidade;
+                document.getElementById('select-tipo').value = item.tipo;
+                document.getElementById('input-periodo').value = item.periodo;
+                
+                ui.toggleEditMode(true);
+                ui.navigate('home');
+                window.scrollTo({top:0, behavior:'smooth'});
+                utils.showAlert("Modo Edição", "Altere os dados e clique em Atualizar.");
+            },
+            cancelEdit: () => {
+                app.state.editingId = null;
+                ui.toggleEditMode(false);
+            },
+            deleteItem: (id) => {
+                utils.showConfirm("Excluir", "Deseja remover este registro?", async () => {
+                    ui.loading(true, "Excluindo...");
+                    try {
+                        const res = await api.req({op:'delete_supply', payload: {id}});
+                        if(res.success) {
+                            utils.showAlert("Sucesso", "Registro excluído!");
+                            app.loadHistory(app.state.page);
+                            app.updateDashboard(res.dashboard);
+                        } else utils.showAlert("Erro", res.error);
+                    } catch(e) { utils.showAlert("Erro", e); }
+                    ui.loading(false);
+                });
+            },
             handleSubmit: async (e) => {
                 if(e) e.preventDefault();
-                ui.loading(true, "Salvando...");
                 const form = document.getElementById('form-cadastro'); const data = Object.fromEntries(new FormData(form).entries()); const dateBackup = data.dataAgendada;
                 const operation = app.state.editingId ? 'update_supply' : 'save';
                 const loadText = app.state.editingId ? "Atualizando..." : "Salvando...";
@@ -550,13 +590,11 @@
             loadHistory: async (page) => {
                 if(page < 1) return;
                 ui.loading(true, "Buscando...");
-                // ATUALIZADO: Usando campos DE e ATÉ
                 const start = document.getElementById('filter-start').value;
                 const end = document.getElementById('filter-end').value;
                 const com = document.getElementById('filter-com').value;
                 
                 try {
-                    // ATUALIZADO: Passando os parametros corretos
                     const res = await api.get({
                         op:'history', 
                         page, 
