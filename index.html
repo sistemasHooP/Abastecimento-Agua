@@ -206,16 +206,30 @@
             </div>
         </div>
 
-        <!-- LISTA -->
+        <!-- LISTA (FILTRO DE PERÍODO ATUALIZADO) -->
         <div id="view-list" class="screen p-4 space-y-4">
             <h2 class="text-xl font-bold text-gray-800">Histórico</h2>
             <div class="bg-white p-3 rounded-lg shadow-sm space-y-3">
+                
+                <!-- NOVOS CAMPOS DE DATA PARA FILTRO (DE / ATÉ) -->
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="date" id="filter-date" class="w-full p-2 border rounded text-sm bg-gray-50">
-                    <select id="filter-com" class="w-full p-2 border rounded text-sm bg-gray-50 select-locais-dinamico"><option value="">Todas</option></select>
+                    <div class="flex flex-col">
+                        <label class="text-[10px] text-gray-500 font-bold mb-1">DE:</label>
+                        <input type="date" id="filter-start" class="w-full p-2 border rounded text-sm bg-gray-50">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-[10px] text-gray-500 font-bold mb-1">ATÉ:</label>
+                        <input type="date" id="filter-end" class="w-full p-2 border rounded text-sm bg-gray-50">
+                    </div>
                 </div>
-                <button onclick="app.loadHistory(1)" class="w-full bg-blue-100 text-blue-700 font-bold py-2 rounded text-sm">Filtrar</button>
+
+                <select id="filter-com" class="w-full p-2 border rounded text-sm bg-gray-50 select-locais-dinamico"><option value="">Todas as Comunidades</option></select>
+                
+                <button onclick="app.loadHistory(1)" class="w-full bg-blue-100 text-blue-700 font-bold py-2 rounded text-sm flex justify-center items-center gap-2">
+                    <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
+                </button>
             </div>
+            
             <div id="list-container" class="space-y-3 pb-2 min-h-[100px]"><div class="text-center text-gray-400 mt-10">...</div></div>
             <div id="pagination-controls" class="flex justify-between items-center pt-2 hidden">
                 <button onclick="app.changePage(-1)" class="bg-white border px-4 py-2 rounded text-sm font-medium">Anterior</button>
@@ -329,7 +343,6 @@
         const utils = {
             formatDateBR: d => d ? d.split('-').reverse().join('/') : '',
             
-            // CORREÇÃO DATA LOCAL
             getToday: () => {
                 const d = new Date();
                 const year = d.getFullYear();
@@ -411,7 +424,9 @@
                         btnClass = 'bg-green-500 hover:bg-green-600';
                         btnAction = `href="${linkWa}" target="_blank"`;
                     }
+                    
                     const itemJson = JSON.stringify(i).replace(/"/g, '&quot;');
+
                     c.innerHTML += `
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400 mb-2">
                         <div class="flex justify-between items-start mb-2">
@@ -465,7 +480,7 @@
                 if(window.lucide) lucide.createIcons();
                 ui.updateDashboardLabels();
                 const today = utils.getToday();
-                ['input-date','rel-inicio','rel-fim','filter-date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = today; });
+                ['input-date','rel-inicio','rel-fim','filter-start','filter-end'].forEach(id => { const el = document.getElementById(id); if(el) el.value = today; });
                 document.getElementById('input-whatsapp').addEventListener('input', e => e.target.value = utils.maskPhone(e.target.value));
                 document.getElementById('btn-confirm-yes').addEventListener('click', () => utils.closeConfirm(true));
                 const savedUser = localStorage.getItem('app_user');
@@ -535,9 +550,20 @@
             loadHistory: async (page) => {
                 if(page < 1) return;
                 ui.loading(true, "Buscando...");
-                const fd = document.getElementById('filter-date').value; const fc = document.getElementById('filter-com').value;
+                // ATUALIZADO: Usando campos DE e ATÉ
+                const start = document.getElementById('filter-start').value;
+                const end = document.getElementById('filter-end').value;
+                const com = document.getElementById('filter-com').value;
+                
                 try {
-                    const res = await api.get({op:'history', page, filterDate:fd, filterCom:fc});
+                    // ATUALIZADO: Passando os parametros corretos
+                    const res = await api.get({
+                        op:'history', 
+                        page, 
+                        filterStart: start, 
+                        filterEnd: end, 
+                        filterCom: com
+                    });
                     app.state.page = res.page; app.state.total = res.totalPages; ui.renderList(res.data, res.page, res.totalPages);
                 } catch(e) { console.error(e); }
                 ui.loading(false);
